@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Display Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .payment-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Payment Display Fix Test</h1>
+        
+        <div class="payment-display" id="total-amount">
+            Payment PKR 0.00
+        </div>
+        <div class="payment-display" id="total-items">
+            Item(s): 0
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <button class="btn btn-primary" onclick="addTestItem()">Add Test Item</button>
+            <button class="btn btn-success" onclick="forceUpdateDisplay()">Force Update Display</button>
+            <button class="btn btn-danger" onclick="clearCart()">Clear Cart</button>
+            <button class="btn btn-primary" onclick="checkElements()">Check Elements</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="assets/js/cart.js"></script>
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function addTestItem() {
+            log('Adding test item...');
+            addToCart(999, 'Test Pizza', 500, 3);
+            log('Test item added. Cart now has ' + cart.length + ' items');
+        }
+        
+        function forceUpdateDisplay() {
+            log('Forcing display update...');
+            updateCartDisplay();
+            log('Display update completed');
+        }
+        
+        function checkElements() {
+            const totalAmount = document.getElementById('total-amount');
+            const totalItems = document.getElementById('total-items');
+            
+            log('Checking elements:');
+            log('- total-amount element: ' + (totalAmount ? 'FOUND' : 'NOT FOUND'));
+            log('- total-items element: ' + (totalItems ? 'FOUND' : 'NOT FOUND'));
+            
+            if (totalAmount) {
+                log('- total-amount current text: ' + totalAmount.textContent);
+            }
+            if (totalItems) {
+                log('- total-items current text: ' + totalItems.textContent);
+            }
+            
+            log('Cart state: ' + JSON.stringify(cart, null, 2));
+            log('Cart total: ' + getCartTotal());
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Test page loaded');
+            log('Initial cart state: ' + JSON.stringify(cart, null, 2));
+            updateCartDisplay();
+        });
+    </script>
+</body>
+</html> 

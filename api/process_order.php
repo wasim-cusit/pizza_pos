@@ -1,7 +1,7 @@
 <?php
 /**
  * Process Order API
- * Fast Food POS System
+ * Fast Food POS System - Enhanced with QR Codes
  */
 
 header('Content-Type: application/json');
@@ -14,6 +14,34 @@ require_once '../config/database.php';
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Helper function to sanitize input
+function sanitize($input) {
+    return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
+}
+
+// Helper function to check if user is logged in
+function isLoggedIn() {
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+}
+
+// Helper function to generate QR code data
+function generateQRData($orderNumber, $totalAmount, $items) {
+    $qrData = [
+        'order_number' => $orderNumber,
+        'total_amount' => $totalAmount,
+        'items_count' => count($items),
+        'timestamp' => date('Y-m-d H:i:s'),
+        'pos_system' => 'Fast Food POS'
+    ];
+    return json_encode($qrData);
+}
+
+// Helper function to generate QR code URL
+function generateQRCodeURL($data) {
+    $encodedData = urlencode($data);
+    return "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . $encodedData;
 }
 
 try {
@@ -30,7 +58,7 @@ try {
     }
     
     // Validate required fields
-    $requiredFields = ['order_number', 'items', 'total_amount', 'payment_method'];
+    $requiredFields = ['items', 'total_amount', 'payment_method'];
     foreach ($requiredFields as $field) {
         if (!isset($input[$field])) {
             throw new Exception("Missing required field: $field");
@@ -42,6 +70,11 @@ try {
         throw new Exception('No items in order');
     }
     
+    // Generate order number if not provided
+    if (empty($input['order_number'])) {
+        $input['order_number'] = 'ORD' . date('Ymd') . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    }
+    
     // Start transaction
     $db->beginTransaction();
     
@@ -49,21 +82,35 @@ try {
         // Create customer record if customer info provided
         $customerId = null;
         if (!empty($input['customer_name'])) {
-            $query = "INSERT INTO customers (name, postcode) VALUES (?, ?)";
+            $query = "INSERT INTO customers (name, postcode, phone, email, created_at) 
+                      VALUES (?, ?, ?, ?, NOW()) 
+                      ON DUPLICATE KEY UPDATE 
+                      name = VALUES(name), 
+                      postcode = VALUES(postcode), 
+                      phone = VALUES(phone), 
+                      email = VALUES(email)";
             $stmt = $db->prepare($query);
             $stmt->execute([
                 sanitize($input['customer_name']),
-                sanitize($input['customer_postcode'] ?? '')
+                sanitize($input['customer_postcode'] ?? ''),
+                sanitize($input['customer_phone'] ?? ''),
+                sanitize($input['customer_email'] ?? '')
             ]);
             $customerId = $db->lastInsertId();
         }
         
+        // Calculate tax and total
+        $subtotal = $input['total_amount'];
+        $taxRate = 0.15; // 15% tax rate
+        $taxAmount = $subtotal * $taxRate;
+        $totalAmount = $subtotal + $taxAmount;
+        
         // Create order record
         $query = "INSERT INTO orders (
             order_number, user_id, customer_id, order_type, 
-            subtotal, total_amount, payment_method, payment_status, 
-            order_status, notes, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', 'pending', ?, NOW())";
+            subtotal, tax_amount, total_amount, payment_method, payment_status, 
+            order_status, notes, table_number, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'pending', ?, ?, NOW())";
         
         $stmt = $db->prepare($query);
         $stmt->execute([
@@ -71,10 +118,12 @@ try {
             $_SESSION['user_id'],
             $customerId,
             $input['order_type'] ?? 'dine_in',
-            $input['total_amount'],
-            $input['total_amount'],
+            $subtotal,
+            $taxAmount,
+            $totalAmount,
             $input['payment_method'],
-            sanitize($input['notes'] ?? '')
+            sanitize($input['notes'] ?? ''),
+            sanitize($input['table_number'] ?? '')
         ]);
         
         $orderId = $db->lastInsertId();
@@ -82,8 +131,8 @@ try {
         // Insert order items
         $query = "INSERT INTO order_items (
             order_id, item_id, item_name, quantity, 
-            unit_price, total_price, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW())";
+            unit_price, total_price, special_instructions, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
         
         $stmt = $db->prepare($query);
         
@@ -94,7 +143,8 @@ try {
                 sanitize($item['name']),
                 $item['quantity'],
                 $item['price'],
-                $item['totalPrice']
+                $item['totalPrice'],
+                sanitize($item['special_instructions'] ?? '')
             ]);
         }
         
@@ -102,7 +152,7 @@ try {
         $db->commit();
         
         // Get the complete order for response
-        $query = "SELECT o.*, u.name as user_name, c.name as customer_name 
+        $query = "SELECT o.*, u.name as user_name, u.username, c.name as customer_name, c.phone as customer_phone
                   FROM orders o 
                   LEFT JOIN users u ON o.user_id = u.id 
                   LEFT JOIN customers c ON o.customer_id = c.id 
@@ -110,22 +160,45 @@ try {
         
         $stmt = $db->prepare($query);
         $stmt->execute([$orderId]);
-        $order = $stmt->fetch();
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
         
         // Get order items
         $query = "SELECT * FROM order_items WHERE order_id = ?";
         $stmt = $db->prepare($query);
         $stmt->execute([$orderId]);
-        $orderItems = $stmt->fetchAll();
+        $orderItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         $order['items'] = $orderItems;
         
-        // Return success response
+        // Generate QR code data
+        $qrData = generateQRData($order['order_number'], $totalAmount, $orderItems);
+        $qrCodeURL = generateQRCodeURL($qrData);
+        
+        // Prepare print data
+        $printData = [
+            'order_number' => $order['order_number'],
+            'date_time' => date('Y-m-d H:i:s'),
+            'cashier' => $order['user_name'] ?? 'Admin',
+            'customer' => $order['customer_name'] ?? 'Walk-in Customer',
+            'table_number' => $order['table_number'] ?? '',
+            'items' => $orderItems,
+            'subtotal' => $subtotal,
+            'tax_amount' => $taxAmount,
+            'total_amount' => $totalAmount,
+            'payment_method' => $input['payment_method'],
+            'qr_code_url' => $qrCodeURL,
+            'qr_data' => $qrData
+        ];
+        
+        // Return success response with enhanced data
         echo json_encode([
             'success' => true,
             'message' => 'Order processed successfully',
             'order' => $order,
-            'order_id' => $orderId
+            'order_id' => $orderId,
+            'print_data' => $printData,
+            'qr_code_url' => $qrCodeURL,
+            'qr_data' => $qrData
         ]);
         
     } catch (Exception $e) {

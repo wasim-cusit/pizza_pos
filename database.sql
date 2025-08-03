@@ -2,9 +2,9 @@
 -- Created for Fast Food POS System
 
 -- Drop database if exists and create new one
-DROP DATABASE IF EXISTS pos_system;
-CREATE DATABASE pos_system;
-USE pos_system;
+DROP DATABASE IF EXISTS pizza_pos;
+CREATE DATABASE pizza_pos;
+USE pizza_pos;
 
 -- Users table for authentication and role management
 CREATE TABLE users (
@@ -102,6 +102,26 @@ CREATE TABLE settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Special Offers table for promotional offers
+CREATE TABLE special_offers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    original_price DECIMAL(10,2) NOT NULL,
+    discounted_price DECIMAL(10,2) NOT NULL,
+    discount_percentage DECIMAL(5,2),
+    items_included TEXT,
+    image VARCHAR(255) DEFAULT 'default-offer.jpg',
+    is_active BOOLEAN DEFAULT TRUE,
+    start_date DATE,
+    end_date DATE,
+    priority INT DEFAULT 1,
+    created_by INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
 -- Insert default admin user
 INSERT INTO users (name, username, password, role) VALUES 
 ('Admin User', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'); -- password: password
@@ -189,6 +209,13 @@ INSERT INTO settings (setting_key, setting_value, description) VALUES
 ('receipt_footer', 'Thank you for your order!', 'Footer text for receipts'),
 ('auto_order_number', 'true', 'Auto generate order numbers'),
 ('order_prefix', 'ORD', 'Prefix for order numbers');
+
+-- Insert sample special offers
+INSERT INTO special_offers (title, description, original_price, discounted_price, discount_percentage, items_included, is_active, start_date, end_date, priority, created_by) VALUES 
+('🍕 Pizza Combo Special', 'Any Pizza + Drink + Fries', 750.00, 650.00, 13.33, 'Pizza, Cold Drink, French Fries', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 2, 1),
+('🍔 Burger Special', 'Any Burger + Fries + Drink', 680.00, 600.00, 11.76, 'Burger, French Fries, Cold Drink', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 1, 1),
+('🍗 Wings Combo', 'BBQ Wings + Fries + Drink', 500.00, 450.00, 10.00, 'BBQ Wings, French Fries, Cold Drink', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 1, 1),
+('🥤 Family Pack', '2 Pizzas + 2 Drinks + Fries', 1200.00, 1000.00, 16.67, '2 Pizzas, 2 Cold Drinks, French Fries', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 3, 1);
 
 -- Create indexes for better performance
 CREATE INDEX idx_orders_user_id ON orders(user_id);

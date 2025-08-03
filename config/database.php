@@ -6,7 +6,7 @@
 
 class Database {
     private $host = 'localhost';
-    private $db_name = 'pos_system';
+    private $db_name = 'pizza_pos';
     private $username = 'root';
     private $password = '';
     private $conn;
@@ -94,4 +94,4 @@ function requireAdmin() {
         exit();
     }
 }
-?> 
+?>

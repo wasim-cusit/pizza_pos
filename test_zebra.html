@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zebra Printer Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #2563eb;
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .error {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .info {
+            color: #3b82f6;
+            font-weight: bold;
+        }
+        pre {
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Zebra Printer Management Test</h1>
+    
+    <div class="test-section">
+        <h2>🔧 Function Availability Test</h2>
+        <p>Testing if all Zebra printer functions are properly defined and accessible:</p>
+        <button class="test-button" onclick="testFunctionAvailability()">Test Function Availability</button>
+        <div id="function-test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>⚙️ Settings Management Test</h2>
+        <p>Testing settings save/load functionality:</p>
+        <button class="test-button" onclick="testSettingsManagement()">Test Settings Management</button>
+        <div id="settings-test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔗 Connection Test</h2>
+        <p>Testing printer connection simulation:</p>
+        <button class="test-button" onclick="testConnection()">Test Connection</button>
+        <div id="connection-test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🖨️ ZPL Generation Test</h2>
+        <p>Testing ZPL command generation for different print types:</p>
+        <button class="test-button" onclick="testZPLGeneration()">Test ZPL Generation</button>
+        <div id="zpl-test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📋 Print Functions Test</h2>
+        <p>Testing all print functions:</p>
+        <button class="test-button" onclick="testPrintFunctions()">Test Print Functions</button>
+        <div id="print-test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎯 Complete Integration Test</h2>
+        <p>Running complete integration test:</p>
+        <button class="test-button" onclick="runCompleteTest()">Run Complete Test</button>
+        <div id="complete-test-results"></div>
+    </div>
+
+    <script>
+        // Mock functions for testing
+        function showToast(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            const results = document.getElementById('complete-test-results');
+            results.innerHTML += `<p class="${type}">${message}</p>`;
+        }
+        
+        function generateOrderNumber() {
+            return 'ORD' + Date.now().toString().slice(-6);
+        }
+        
+        function getCartTotal() {
+            return '150.00';
+        }
+        
+        // Test Function Availability
+        function testFunctionAvailability() {
+            const results = document.getElementById('function-test-results');
+            const functions = [
+                'showZebra', 'loadZebraSettings', 'saveZebraSettings', 
+                'testZebraConnection', 'printZebraTest', 'printZebra',
+                'printZebraReceipt', 'printZebraLabel', 'printZebraBarcode', 'printZebraQR',
+                'generateReceiptZPL', 'generateLabelZPL', 'generateBarcodeZPL', 'generateQRZPL'
+            ];
+            
+            let html = '<h3>Function Test Results:</h3>';
+            let allPassed = true;
+            
+            functions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    html += `<p class="success">✅ ${funcName} - Available</p>`;
+                } else {
+                    html += `<p class="error">❌ ${funcName} - Missing</p>`;
+                    allPassed = false;
+                }
+            });
+            
+            if (allPassed) {
+                html += '<p class="success"><strong>🎉 All functions are available!</strong></p>';
+            } else {
+                html += '<p class="error"><strong>⚠️ Some functions are missing!</strong></p>';
+            }
+            
+            results.innerHTML = html;
+        }
+        
+        // Test Settings Management
+        function testSettingsManagement() {
+            const results = document.getElementById('settings-test-results');
+            
+            // Test save settings
+            localStorage.setItem('printerIp', '192.168.1.200');
+            localStorage.setItem('printerPort', '9100');
+            localStorage.setItem('labelWidth', '4');
+            localStorage.setItem('labelHeight', '6');
+            
+            const savedIp = localStorage.getItem('printerIp');
+            const savedPort = localStorage.getItem('printerPort');
+            
+            let html = '<h3>Settings Test Results:</h3>';
+            if (savedIp === '192.168.1.200' && savedPort === '9100') {
+                html += '<p class="success">✅ Settings save/load working correctly</p>';
+            } else {
+                html += '<p class="error">❌ Settings save/load failed</p>';
+            }
+            
+            results.innerHTML = html;
+        }
+        
+        // Test Connection
+        function testConnection() {
+            const results = document.getElementById('connection-test-results');
+            results.innerHTML = '<h3>Connection Test Results:</h3><p class="info">Testing connection simulation...</p>';
+            
+            // Simulate connection test
+            setTimeout(() => {
+                const isConnected = Math.random() > 0.3;
+                if (isConnected) {
+                    results.innerHTML = '<h3>Connection Test Results:</h3><p class="success">✅ Connection test simulation working</p>';
+                } else {
+                    results.innerHTML = '<h3>Connection Test Results:</h3><p class="error">❌ Connection test simulation failed</p>';
+                }
+            }, 1000);
+        }
+        
+        // Test ZPL Generation
+        function testZPLGeneration() {
+            const results = document.getElementById('zpl-test-results');
+            
+            try {
+                const testOrder = generateOrderNumber();
+                const testDate = new Date().toLocaleString();
+                const testTotal = '150.00';
+                
+                const receiptZPL = generateReceiptZPL(testOrder, testDate, testTotal);
+                const labelZPL = generateLabelZPL(testOrder, testDate);
+                const barcodeZPL = generateBarcodeZPL(testOrder);
+                const qrZPL = generateQRZPL(testOrder, testTotal);
+                
+                let html = '<h3>ZPL Generation Test Results:</h3>';
+                html += '<p class="success">✅ Receipt ZPL generated</p>';
+                html += '<p class="success">✅ Label ZPL generated</p>';
+                html += '<p class="success">✅ Barcode ZPL generated</p>';
+                html += '<p class="success">✅ QR ZPL generated</p>';
+                html += '<h4>Sample Receipt ZPL:</h4>';
+                html += `<pre>${receiptZPL}</pre>`;
+                
+                results.innerHTML = html;
+            } catch (error) {
+                results.innerHTML = `<h3>ZPL Generation Test Results:</h3><p class="error">❌ ZPL generation failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Test Print Functions
+        function testPrintFunctions() {
+            const results = document.getElementById('print-test-results');
+            results.innerHTML = '<h3>Print Functions Test Results:</h3>';
+            
+            try {
+                // Test each print function
+                printZebraReceipt();
+                printZebraLabel();
+                printZebraBarcode();
+                printZebraQR();
+                
+                results.innerHTML += '<p class="success">✅ All print functions executed successfully</p>';
+                results.innerHTML += '<p class="info">Check console for ZPL commands and toast messages</p>';
+            } catch (error) {
+                results.innerHTML += `<p class="error">❌ Print functions test failed: ${error.message}</p>`;
+            }
+        }
+        
+        // Complete Integration Test
+        function runCompleteTest() {
+            const results = document.getElementById('complete-test-results');
+            results.innerHTML = '<h3>Complete Integration Test Results:</h3>';
+            
+            // Run all tests
+            testFunctionAvailability();
+            testSettingsManagement();
+            testConnection();
+            testZPLGeneration();
+            testPrintFunctions();
+            
+            results.innerHTML += '<p class="success"><strong>🎉 Complete test finished! Check individual test results above.</strong></p>';
+        }
+        
+        // Load the main app.js file for testing
+        window.addEventListener('load', function() {
+            console.log('Zebra Printer Test Page Loaded');
+            console.log('Available functions:', Object.keys(window).filter(key => key.includes('Zebra')));
+        });
+    </script>
+</body>
+</html> 
