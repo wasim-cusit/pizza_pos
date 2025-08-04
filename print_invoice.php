@@ -66,9 +66,40 @@ $qrData = json_encode([
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         @media print {
-            body { margin: 0; }
+            body { 
+                margin: 0; 
+                padding: 0;
+                font-size: 8px;
+            }
             .no-print { display: none !important; }
-            .invoice-container { box-shadow: none !important; }
+            .invoice-container { 
+                box-shadow: none !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                width: 80mm !important;
+                max-width: 80mm !important;
+            }
+            @page {
+                margin: 0;
+                size: 80mm auto;
+                padding: 0;
+            }
+            .header, .order-info, .customer-info, .items-section, .totals-section, .footer {
+                padding: 3px !important;
+            }
+            .item-row, .order-row, .total-row {
+                margin-bottom: 1px !important;
+                font-size: 7px !important;
+            }
+            .restaurant-name {
+                font-size: 10px !important;
+            }
+            .restaurant-info {
+                font-size: 6px !important;
+            }
+            .grand-total {
+                font-size: 9px !important;
+            }
         }
         
         * {
@@ -80,39 +111,42 @@ $qrData = json_encode([
         body {
             font-family: 'Courier New', monospace;
             background: #f5f5f5;
-            padding: 20px;
-            font-size: 12px;
+            padding: 10px;
+            font-size: 10px;
+            line-height: 1.2;
         }
         
         .invoice-container {
+            width: 80mm;
             max-width: 80mm;
             margin: 0 auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             border-radius: 8px;
             overflow: hidden;
+            min-height: 400px;
         }
         
         .header {
             text-align: center;
-            padding: 15px;
-            border-bottom: 2px dashed #ccc;
+            padding: 10px;
+            border-bottom: 1px dashed #ccc;
         }
         
         .restaurant-name {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             margin-bottom: 5px;
         }
         
         .restaurant-info {
-            font-size: 10px;
+            font-size: 8px;
             color: #666;
             line-height: 1.3;
         }
         
         .order-info {
-            padding: 15px;
+            padding: 10px;
             border-bottom: 1px solid #eee;
         }
         
@@ -120,6 +154,7 @@ $qrData = json_encode([
             display: flex;
             justify-content: space-between;
             margin-bottom: 3px;
+            font-size: 9px;
         }
         
         .order-label {
@@ -127,23 +162,25 @@ $qrData = json_encode([
         }
         
         .customer-info {
-            padding: 15px;
+            padding: 10px;
             border-bottom: 1px solid #eee;
         }
         
         .items-section {
-            padding: 15px;
+            padding: 10px;
         }
         
         .item-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
-            padding: 3px 0;
+            margin-bottom: 4px;
+            padding: 2px 0;
+            font-size: 9px;
         }
         
         .item-name {
-            flex: 2;
+            flex: 3;
+            word-wrap: break-word;
         }
         
         .item-qty {
@@ -163,14 +200,15 @@ $qrData = json_encode([
         }
         
         .totals-section {
-            padding: 15px;
-            border-top: 2px dashed #ccc;
+            padding: 10px;
+            border-top: 1px dashed #ccc;
         }
         
         .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            font-size: 9px;
         }
         
         .total-label {
@@ -178,7 +216,7 @@ $qrData = json_encode([
         }
         
         .grand-total {
-            font-size: 16px;
+            font-size: 12px;
             font-weight: bold;
             border-top: 1px solid #000;
             padding-top: 5px;
@@ -186,14 +224,14 @@ $qrData = json_encode([
         }
         
         .footer {
-            padding: 15px;
+            padding: 10px;
             text-align: center;
             border-top: 1px solid #eee;
         }
         
         .qr-section {
             text-align: center;
-            padding: 10px;
+            padding: 8px;
         }
         
         .qr-code {
@@ -201,9 +239,9 @@ $qrData = json_encode([
         }
         
         .thank-you {
-            font-size: 14px;
+            font-size: 10px;
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 5px;
         }
         
         .print-btn {
@@ -225,9 +263,9 @@ $qrData = json_encode([
         
         .order-type-badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 8px;
             font-weight: bold;
             text-transform: uppercase;
         }
@@ -245,6 +283,15 @@ $qrData = json_encode([
         .badge-delivery {
             background: #17a2b8;
             color: white;
+        }
+        
+        /* POS-specific adjustments */
+        @media screen and (max-width: 100mm) {
+            .invoice-container {
+                width: 100%;
+                max-width: 100%;
+                border-radius: 0;
+            }
         }
     </style>
 </head>
@@ -398,8 +445,8 @@ $qrData = json_encode([
     <script>
         // Generate QR Code
         QRCode.toCanvas(document.getElementById('qr-code'), '<?php echo $qrData; ?>', {
-            width: 100,
-            margin: 2,
+            width: 60,
+            margin: 1,
             color: {
                 dark: '#000000',
                 light: '#FFFFFF'

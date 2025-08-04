@@ -84,173 +84,212 @@ if (!$orderData) {
     <title>Receipt - <?php echo htmlspecialchars($orderData['order_number']); ?></title>
     <style>
         @media print {
-            body { margin: 0; }
+            body { 
+                margin: 0; 
+                padding: 0;
+                font-size: 8px;
+            }
             .no-print { display: none !important; }
-            .receipt { box-shadow: none !important; }
+            .receipt { 
+                box-shadow: none !important;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                width: 80mm !important;
+                max-width: 80mm !important;
+            }
+            @page {
+                margin: 0;
+                size: 80mm auto;
+                padding: 0;
+            }
+            .header, .order-info, .items, .totals, .qr-section, .footer {
+                padding: 3px !important;
+            }
+            .item, .order-info, .total-row {
+                margin-bottom: 1px !important;
+                font-size: 7px !important;
+            }
+            .header h1 {
+                font-size: 10px !important;
+            }
+            .header p {
+                font-size: 6px !important;
+            }
+            .total-row.final {
+                font-size: 9px !important;
+            }
         }
         
         body {
             font-family: 'Courier New', monospace;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background: #f5f5f5;
             color: #333;
         }
         
         .receipt {
-            max-width: 400px;
+            width: 80mm;
+            max-width: 80mm;
             margin: 0 auto;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 10px;
+            border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            font-size: 14px;
-            line-height: 1.4;
+            font-size: 9px;
+            line-height: 1.2;
+            min-height: 400px;
         }
         
         .header {
             text-align: center;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
         }
         
         .header h1 {
-            margin: 0 0 10px 0;
+            margin: 0 0 5px 0;
             color: #20bf55;
-            font-size: 24px;
+            font-size: 14px;
             font-weight: bold;
         }
         
         .header p {
-            margin: 5px 0;
+            margin: 3px 0;
             color: #64748b;
-            font-size: 12px;
+            font-size: 8px;
         }
         
         .order-info {
             display: flex;
             justify-content: space-between;
-            margin: 10px 0;
-            font-size: 12px;
+            margin: 5px 0;
+            font-size: 9px;
             color: #64748b;
         }
         
         .items {
-            margin: 20px 0;
+            margin: 10px 0;
         }
         
         .item {
             display: flex;
             justify-content: space-between;
-            margin: 8px 0;
-            padding: 5px 0;
+            margin: 4px 0;
+            padding: 2px 0;
             border-bottom: 1px solid #f1f5f9;
+            font-size: 9px;
         }
         
         .item-name {
-            flex: 1;
+            flex: 3;
             font-weight: 500;
+            word-wrap: break-word;
         }
         
         .item-quantity {
-            margin: 0 10px;
+            margin: 0 5px;
             color: #64748b;
+            text-align: center;
+            flex: 1;
         }
         
         .item-price {
             font-weight: 600;
             color: #1e293b;
+            text-align: right;
+            flex: 1;
         }
         
         .totals {
-            border-top: 2px solid #e2e8f0;
-            margin-top: 15px;
-            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+            margin-top: 10px;
+            padding-top: 10px;
         }
         
         .total-row {
             display: flex;
             justify-content: space-between;
-            margin: 5px 0;
-            font-size: 14px;
+            margin: 4px 0;
+            font-size: 9px;
         }
         
         .total-row.final {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 12px;
             color: #20bf55;
             border-top: 1px solid #e2e8f0;
-            padding-top: 10px;
-            margin-top: 10px;
+            padding-top: 5px;
+            margin-top: 5px;
         }
         
         .qr-section {
             text-align: center;
-            margin: 20px 0;
-            padding: 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
+            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
             background: #f8fafc;
         }
         
         .qr-code img {
-            max-width: 150px;
+            max-width: 60px;
             height: auto;
-            border-radius: 6px;
-            margin: 10px 0;
+            border-radius: 4px;
+            margin: 5px 0;
         }
         
         .qr-text {
-            font-size: 11px;
+            font-size: 9px;
             color: #64748b;
-            margin-top: 10px;
+            margin-top: 5px;
         }
         
         .footer {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 2px solid #e2e8f0;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
             color: #64748b;
-            font-size: 11px;
+            font-size: 9px;
         }
         
         .payment-info {
             background: #f0f9ff;
             border: 1px solid #0ea5e9;
             border-radius: 6px;
-            padding: 10px;
-            margin: 15px 0;
+            padding: 8px;
+            margin: 8px 0;
             text-align: center;
         }
         
         .payment-method {
             font-weight: bold;
             color: #0ea5e9;
-            font-size: 14px;
+            font-size: 10px;
         }
         
         .customer-info {
             background: #fef3c7;
             border: 1px solid #f59e0b;
             border-radius: 6px;
-            padding: 10px;
-            margin: 15px 0;
+            padding: 8px;
+            margin: 8px 0;
         }
         
         .customer-name {
             font-weight: bold;
             color: #92400e;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
         
         .table-info {
             background: #ecfdf5;
             border: 1px solid #10b981;
             border-radius: 6px;
-            padding: 10px;
-            margin: 15px 0;
+            padding: 8px;
+            margin: 8px 0;
             text-align: center;
         }
         
@@ -293,10 +332,19 @@ if (!$orderData) {
             background: #fef2f2;
             border: 1px solid #ef4444;
             border-radius: 6px;
-            padding: 8px;
-            margin: 5px 0;
-            font-size: 11px;
+            padding: 6px;
+            margin: 3px 0;
+            font-size: 8px;
             color: #991b1b;
+        }
+        
+        /* POS-specific adjustments */
+        @media screen and (max-width: 100mm) {
+            .receipt {
+                width: 100%;
+                max-width: 100%;
+                border-radius: 0;
+            }
         }
     </style>
 </head>
