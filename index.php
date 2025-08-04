@@ -39,6 +39,92 @@ if (empty($items)) {
     <title>Fast Food POS System</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+         <style>
+         /* Modal styles for size selection */
+         .modal {
+             position: fixed;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: rgba(0, 0, 0, 0.5);
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             z-index: 1000;
+             backdrop-filter: blur(5px);
+         }
+         
+         .modal-content {
+             background: white;
+             border-radius: 16px;
+             padding: 30px;
+             max-width: 500px;
+             width: 90%;
+             max-height: 80vh;
+             overflow-y: auto;
+             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+             position: relative;
+             animation: modalSlideIn 0.3s ease-out;
+         }
+         
+         @keyframes modalSlideIn {
+             from {
+                 opacity: 0;
+                 transform: translateY(-50px) scale(0.9);
+             }
+             to {
+                 opacity: 1;
+                 transform: translateY(0) scale(1);
+             }
+         }
+         
+         .modal-header {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-bottom: 20px;
+             padding-bottom: 15px;
+             border-bottom: 2px solid #f1f5f9;
+         }
+         
+         .modal-title {
+             font-size: 20px;
+             font-weight: 700;
+             color: #1e293b;
+             margin: 0;
+         }
+         
+         .modal-close {
+             background: none;
+             border: none;
+             font-size: 24px;
+             color: #64748b;
+             cursor: pointer;
+             padding: 5px;
+             border-radius: 6px;
+             transition: all 0.3s ease;
+         }
+         
+         .modal-close:hover {
+             background: #f1f5f9;
+             color: #1e293b;
+         }
+         
+         .close {
+             transition: all 0.2s ease;
+         }
+         
+         .close:hover {
+             opacity: 0.7;
+             transform: scale(1.1);
+         }
+         
+         .size-option:hover {
+             transform: translateY(-2px);
+             box-shadow: 0 8px 25px rgba(32, 191, 85, 0.2);
+         }
+     </style>
     <script>
         // Set user role for JavaScript access
         window.userRole = '<?php echo $_SESSION['user_role']; ?>';
@@ -126,8 +212,8 @@ if (empty($items)) {
             
             <!-- Order Action Buttons -->
             <div style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="showPaymentModal()" 
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button onclick="showPaymentModal();" 
                             style="flex: 1; padding: 12px; border: none; border-radius: 6px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600; font-size: 14px;">
                         <i class="fas fa-check-circle"></i> Complete Order
                     </button>
@@ -136,6 +222,7 @@ if (empty($items)) {
                         <i class="fas fa-plus"></i> Start New Order
                     </button>
                 </div>
+
             </div>
         </div>
 
@@ -183,7 +270,7 @@ if (empty($items)) {
                         </div>
                     <?php else: ?>
                         <?php foreach ($items as $item): ?>
-                        <div class="item-card" onclick="addToCart(<?php echo $item['id']; ?>, '<?php echo addslashes($item['name']); ?>', <?php echo $item['price']; ?>)">
+                        <div class="item-card" onclick="handleItemClick(<?php echo $item['id']; ?>, '<?php echo addslashes($item['name']); ?>', <?php echo $item['price']; ?>, <?php echo $item['has_size_variants'] ? 'true' : 'false'; ?>)">
                             <div class="item-image">
                                 <?php
                                 $itemIcons = [
@@ -209,7 +296,11 @@ if (empty($items)) {
                                 ?>
                             </div>
                             <div class="item-name"><?php echo $item['name']; ?></div>
-                            <div class="item-price">PKR <?php echo number_format($item['price'], 2); ?></div>
+                            <?php if ($item['has_size_variants']): ?>
+                                <div class="item-price" style="color: #3b82f6; font-weight: 600;">Select Size</div>
+                            <?php else: ?>
+                                <div class="item-price">PKR <?php echo number_format($item['price'], 2); ?></div>
+                            <?php endif; ?>
                             <?php if ($item['description']): ?>
                             <div class="item-description"><?php echo $item['description']; ?></div>
                             <?php endif; ?>
@@ -280,6 +371,21 @@ if (empty($items)) {
             <button class="sidebar-btn" onclick="showMore()">
                 <i class="fas fa-ellipsis-h"></i> More
             </button>
+        </div>
+    </div>
+
+    <!-- Size Selection Modal -->
+    <div id="size-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px; width: 90%;">
+            <div class="modal-header" style="background: #20bf55; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
+                <h3 id="size-modal-title" style="margin: 0; font-size: 18px;">Select Size</h3>
+                <span class="close" onclick="closeSizeModal()" style="color: white; font-size: 24px; font-weight: bold; cursor: pointer; position: absolute; right: 15px; top: 10px;">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div id="size-options" style="display: grid; gap: 10px;">
+                    <!-- Size options will be loaded here -->
+                </div>
+            </div>
         </div>
     </div>
 

@@ -130,21 +130,28 @@ try {
         
         // Insert order items
         $query = "INSERT INTO order_items (
-            order_id, item_id, item_name, quantity, 
-            unit_price, total_price, special_instructions, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            order_id, item_id, item_name, size_name, quantity, 
+            unit_price, total_price, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
         
         $stmt = $db->prepare($query);
         
         foreach ($input['items'] as $item) {
+            // Create item name with size if available
+            $itemName = $item['name'];
+            if (isset($item['sizeName']) && !empty($item['sizeName'])) {
+                $itemName = $item['name'] . ' (' . $item['sizeName'] . ')';
+            }
+            
             $stmt->execute([
                 $orderId,
                 $item['id'],
-                sanitize($item['name']),
+                sanitize($itemName),
+                sanitize($item['sizeName'] ?? ''),
                 $item['quantity'],
                 $item['price'],
                 $item['totalPrice'],
-                sanitize($item['special_instructions'] ?? '')
+                sanitize($item['notes'] ?? '')
             ]);
         }
         

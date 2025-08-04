@@ -101,16 +101,23 @@ try {
         
         // Insert order items
         $itemQuery = "INSERT INTO order_items (
-            order_id, item_id, item_name, quantity, unit_price, total_price, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            order_id, item_id, item_name, size_name, quantity, unit_price, total_price, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         $itemStmt = $db->prepare($itemQuery);
         
         foreach ($items as $item) {
+            // Create item name with size if available
+            $itemName = $item['name'];
+            if (isset($item['sizeName']) && !empty($item['sizeName'])) {
+                $itemName = $item['name'] . ' (' . $item['sizeName'] . ')';
+            }
+            
             $itemStmt->execute([
                 $orderId,
                 $item['id'],
-                $item['name'],
+                $itemName,
+                $item['sizeName'] ?? '',
                 $item['quantity'],
                 $item['price'],
                 $item['price'] * $item['quantity'],

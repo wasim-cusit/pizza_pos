@@ -17,7 +17,195 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCartDisplay();
 });
 
-// Add item to cart
+// Global variables for size selection
+let selectedItemForSize = null;
+
+// Handle item click - check if size selection is needed
+function handleItemClick(itemId, itemName, price, hasSizeVariants) {
+    if (hasSizeVariants) {
+        // Show size selection modal
+        selectedItemForSize = { id: itemId, name: itemName, price: price };
+        showSizeSelectionModal(itemId, itemName);
+    } else {
+        // Add directly to cart
+        addToCart(itemId, itemName, price, 1);
+    }
+}
+
+// Show size selection modal
+function showSizeSelectionModal(itemId, itemName) {
+    // Fetch size variants from API
+    fetch(`api/get_items.php?category_id=1`) // Assuming pizza is category 1
+        .then(response => response.json())
+        .then(data => {
+            const item = data.items.find(item => item.id == itemId);
+            if (item && item.size_variants && item.size_variants.length > 0) {
+                displaySizeOptions(item);
+            } else {
+                // Fallback to direct add if no size variants found
+                addToCart(itemId, itemName, 0, 1);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching size variants:', error);
+            // Fallback to direct add
+            addToCart(itemId, itemName, 0, 1);
+        });
+}
+
+// Display size options in modal
+function displaySizeOptions(item) {
+    let modal = document.getElementById('size-modal');
+    let title = document.getElementById('size-modal-title');
+    let optionsContainer = document.getElementById('size-options');
+    
+    // If modal doesn't exist, create it dynamically
+    if (!modal) {
+        console.log('Creating size modal dynamically');
+        const modalHTML = `
+            <div id="size-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+                <div class="modal-content" style="max-width: 500px; width: 90%; background-color: white; margin: 5% auto; border-radius: 10px; position: relative;">
+                    <div class="modal-header" style="background: #20bf55; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
+                        <h3 id="size-modal-title" style="margin: 0; font-size: 18px;">Select Size</h3>
+                        <span class="close" onclick="closeSizeModal()" style="color: white; font-size: 24px; font-weight: bold; cursor: pointer; position: absolute; right: 15px; top: 10px;">&times;</span>
+                    </div>
+                    <div class="modal-body" style="padding: 20px;">
+                        <div id="size-options" style="display: grid; gap: 10px;">
+                            <!-- Size options will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Get the newly created elements
+        modal = document.getElementById('size-modal');
+        title = document.getElementById('size-modal-title');
+        optionsContainer = document.getElementById('size-options');
+    }
+    
+    // Check if all required elements exist
+    if (!modal || !title || !optionsContainer) {
+        console.error('Size modal elements not found after creation:', {
+            modal: !!modal,
+            title: !!title,
+            optionsContainer: !!optionsContainer
+        });
+        // Fallback to direct add
+        addToCart(item.id, item.name, 0, 1);
+        return;
+    }
+    
+    title.textContent = `Select Size - ${item.name}`;
+    
+    // Clear previous options
+    optionsContainer.innerHTML = '';
+    
+    // Add size options
+    item.size_variants.forEach(size => {
+        const sizeOption = document.createElement('div');
+        sizeOption.className = 'size-option';
+        sizeOption.style.cssText = `
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        
+        sizeOption.innerHTML = `
+            <div>
+                <div style="font-weight: 600; font-size: 16px; color: #374151;">${size.size_name}</div>
+                <div style="font-size: 14px; color: #6b7280;">${item.name}</div>
+            </div>
+            <div style="font-weight: 600; font-size: 18px; color: #20bf55;">
+                PKR ${parseFloat(size.size_price).toFixed(2)}
+            </div>
+        `;
+        
+        sizeOption.onclick = () => {
+            addToCartWithSize(item.id, item.name, size.size_name, size.size_price, 1);
+            closeSizeModal();
+        };
+        
+        sizeOption.onmouseenter = () => {
+            sizeOption.style.borderColor = '#20bf55';
+            sizeOption.style.backgroundColor = '#f0fdf4';
+        };
+        
+        sizeOption.onmouseleave = () => {
+            sizeOption.style.borderColor = '#e2e8f0';
+            sizeOption.style.backgroundColor = 'transparent';
+        };
+        
+        optionsContainer.appendChild(sizeOption);
+    });
+    
+    // Show modal
+    modal.style.display = 'block';
+}
+
+// Close size selection modal
+function closeSizeModal() {
+    const modal = document.getElementById('size-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    selectedItemForSize = null;
+}
+
+// Add item to cart with size
+function addToCartWithSize(itemId, itemName, sizeName, price, quantity = 1) {
+    // Ensure price and quantity are numbers
+    const safePrice = parseFloat(price) || 0;
+    const safeQuantity = parseInt(quantity) || 1;
+    
+    // Create unique ID for item with size
+    const uniqueId = `${itemId}_${sizeName}`;
+    
+    // Check if item with this size already exists in cart
+    const existingItem = window.cart.find(item => 
+        String(item.id) === String(itemId) && item.sizeName === sizeName
+    );
+    
+    if (existingItem) {
+        existingItem.quantity += safeQuantity;
+        existingItem.totalPrice = existingItem.quantity * existingItem.price;
+    } else {
+        const newItem = {
+            id: itemId,
+            name: itemName,
+            sizeName: sizeName,
+            price: safePrice,
+            quantity: safeQuantity,
+            totalPrice: safePrice * safeQuantity
+        };
+        window.cart.push(newItem);
+    }
+    
+    // Keep local cart in sync
+    cart = window.cart;
+    
+    // Save to localStorage
+    saveCartToStorage();
+    
+    // Update display
+    updateCartDisplay();
+    
+    // Force update payment display after a short delay to ensure it updates
+    setTimeout(() => {
+        updatePaymentDisplay();
+    }, 100);
+    
+    // Show success message
+    showToast(`${itemName} (${sizeName}) added to cart`, 'success');
+}
+
+// Add item to cart (original function for non-size items)
 function addToCart(itemId, itemName, price, quantity = 1) {
     // Ensure price and quantity are numbers
     const safePrice = parseFloat(price) || 0;
@@ -26,8 +214,10 @@ function addToCart(itemId, itemName, price, quantity = 1) {
     // Ensure itemId is treated as a string for comparison
     const stringItemId = String(itemId);
     
-    // Check if item already exists in cart
-    const existingItem = window.cart.find(item => String(item.id) === stringItemId);
+    // Check if item already exists in cart (for non-size items)
+    const existingItem = window.cart.find(item => 
+        String(item.id) === stringItemId && !item.sizeName
+    );
     
     if (existingItem) {
         existingItem.quantity += safeQuantity;
@@ -65,12 +255,19 @@ function addToCart(itemId, itemName, price, quantity = 1) {
 function removeFromCart(itemId) {
     // Ensure itemId is treated as a string for comparison
     const stringItemId = String(itemId);
+    
+    // Find the item to get its name for the toast message
+    const itemToRemove = window.cart.find(item => String(item.id) === stringItemId);
+    const itemName = itemToRemove ? (itemToRemove.sizeName ? `${itemToRemove.name} (${itemToRemove.sizeName})` : itemToRemove.name) : 'Item';
+    
+    // Remove the item
     window.cart = window.cart.filter(item => String(item.id) !== stringItemId);
+    
     // Keep local cart in sync
     cart = window.cart;
     saveCartToStorage();
     updateCartDisplay();
-    showToast('Item removed from cart', 'success');
+    showToast(`${itemName} removed from cart`, 'success');
 }
 
 // Update item quantity
@@ -240,12 +437,15 @@ function updateCartDisplay() {
             cartItem.onclick = () => selectCartItem(cartItem);
             cartItem.dataset.itemId = item.id;
             
+            // Create display name with size if available
+            const itemDisplayName = item.sizeName ? `${item.name} (${item.sizeName})` : item.name;
+            
             cartItem.innerHTML = `
                 <div class="item-details" data-item-id="${item.id}" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease; position: relative; overflow: hidden;">
                     <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #20bf55, #01baef);"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="flex: 1;">
-                            <div class="item-name" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-bottom: 6px; letter-spacing: 0.3px;">${item.name}</div>
+                            <div class="item-name" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-bottom: 6px; letter-spacing: 0.3px;">${itemDisplayName}</div>
                             <div class="item-price" style="font-size: 13px; color: #64748b; font-weight: 500;">PKR ${item.price.toFixed(2)}</div>
                             <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Total: PKR ${item.totalPrice.toFixed(2)}</div>
                         </div>
@@ -854,9 +1054,14 @@ function completeOrder() {
     }
     
     // Get form values
-    const orderType = document.querySelector('input[name="orderType"]:checked').value;
+    const orderTypeElement = document.querySelector('input[name="orderType"]:checked');
+    const orderType = orderTypeElement ? orderTypeElement.value : 'dine_in';
+    
     const tableNumber = document.getElementById('tableNumber')?.value || null;
-    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    
+    const paymentMethodElement = document.querySelector('input[name="paymentMethod"]:checked');
+    const paymentMethod = paymentMethodElement ? paymentMethodElement.value : 'cash';
+    
     const customerName = document.getElementById('customerName')?.value || '';
     const customerContact = document.getElementById('customerContact')?.value || '';
     const customerAddress = document.getElementById('customerAddress')?.value || '';

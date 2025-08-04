@@ -14,13 +14,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $category_id = (int)$_POST['category_id'];
                 $price = (float)$_POST['price'];
                 $description = sanitize($_POST['description']);
+                $has_size_variants = isset($_POST['has_size_variants']) ? 1 : 0;
                 
-                $query = "INSERT INTO items (name, category_id, price, description) VALUES (?, ?, ?, ?)";
-                $stmt = $db->prepare($query);
-                $stmt->execute([$name, $category_id, $price, $description]);
-                
-                header('Location: manage_items.php?success=Item added successfully');
-                exit();
+                try {
+                    $db->beginTransaction();
+                    
+                    // Insert the item
+                    $query = "INSERT INTO items (name, category_id, price, description, has_size_variants) VALUES (?, ?, ?, ?, ?)";
+                    $stmt = $db->prepare($query);
+                    $stmt->execute([$name, $category_id, $price, $description, $has_size_variants]);
+                    
+                    $item_id = $db->lastInsertId();
+                    
+                    // Handle size variants if enabled
+                    if ($has_size_variants && isset($_POST['size_variants'])) {
+                        $size_variants = $_POST['size_variants'];
+                        foreach ($size_variants as $variant) {
+                            if (!empty($variant['name']) && !empty($variant['price'])) {
+                                $query = "INSERT INTO item_size_variants (item_id, size_name, size_price) VALUES (?, ?, ?)";
+                                $stmt = $db->prepare($query);
+                                $stmt->execute([$item_id, sanitize($variant['name']), (float)$variant['price']]);
+                            }
+                        }
+                    }
+                    
+                    $db->commit();
+                    header('Location: manage_items.php?success=Item added successfully');
+                    exit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    header('Location: manage_items.php?error=Error adding item: ' . $e->getMessage());
+                    exit();
+                }
                 break;
                 
             case 'edit':
@@ -29,24 +54,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $category_id = (int)$_POST['category_id'];
                 $price = (float)$_POST['price'];
                 $description = sanitize($_POST['description']);
+                $has_size_variants = isset($_POST['has_size_variants']) ? 1 : 0;
                 
-                $query = "UPDATE items SET name = ?, category_id = ?, price = ?, description = ? WHERE id = ?";
-                $stmt = $db->prepare($query);
-                $stmt->execute([$name, $category_id, $price, $description, $id]);
-                
-                header('Location: manage_items.php?success=Item updated successfully');
-                exit();
+                try {
+                    $db->beginTransaction();
+                    
+                    // Update the item
+                    $query = "UPDATE items SET name = ?, category_id = ?, price = ?, description = ?, has_size_variants = ? WHERE id = ?";
+                    $stmt = $db->prepare($query);
+                    $stmt->execute([$name, $category_id, $price, $description, $has_size_variants, $id]);
+                    
+                    // Delete existing size variants
+                    $query = "DELETE FROM item_size_variants WHERE item_id = ?";
+                    $stmt = $db->prepare($query);
+                    $stmt->execute([$id]);
+                    
+                    // Handle size variants if enabled
+                    if ($has_size_variants && isset($_POST['size_variants'])) {
+                        $size_variants = $_POST['size_variants'];
+                        foreach ($size_variants as $variant) {
+                            if (!empty($variant['name']) && !empty($variant['price'])) {
+                                $query = "INSERT INTO item_size_variants (item_id, size_name, size_price) VALUES (?, ?, ?)";
+                                $stmt = $db->prepare($query);
+                                $stmt->execute([$id, sanitize($variant['name']), (float)$variant['price']]);
+                            }
+                        }
+                    }
+                    
+                    $db->commit();
+                    header('Location: manage_items.php?success=Item updated successfully');
+                    exit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    header('Location: manage_items.php?error=Error updating item: ' . $e->getMessage());
+                    exit();
+                }
                 break;
                 
             case 'delete':
                 $id = (int)$_POST['id'];
                 
-                $query = "DELETE FROM items WHERE id = ?";
-                $stmt = $db->prepare($query);
-                $stmt->execute([$id]);
-                
-                header('Location: manage_items.php?success=Item deleted successfully');
-                exit();
+                try {
+                    $db->beginTransaction();
+                    
+                    // Delete size variants first
+                    $query = "DELETE FROM item_size_variants WHERE item_id = ?";
+                    $stmt = $db->prepare($query);
+                    $stmt->execute([$id]);
+                    
+                    // Delete the item
+                    $query = "DELETE FROM items WHERE id = ?";
+                    $stmt = $db->prepare($query);
+                    $stmt->execute([$id]);
+                    
+                    $db->commit();
+                    header('Location: manage_items.php?success=Item deleted successfully');
+                    exit();
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    header('Location: manage_items.php?error=Error deleting item: ' . $e->getMessage());
+                    exit();
+                }
                 break;
         }
     }
@@ -58,7 +126,7 @@ $stmt = $db->prepare($query);
 $stmt->execute();
 $categories = $stmt->fetchAll();
 
-// Get items with category names
+// Get items with category names and size variants
 $query = "SELECT i.*, c.name as category_name 
           FROM items i 
           JOIN categories c ON i.category_id = c.id 
@@ -66,6 +134,15 @@ $query = "SELECT i.*, c.name as category_name
 $stmt = $db->prepare($query);
 $stmt->execute();
 $items = $stmt->fetchAll();
+
+// Get size variants for each item
+$item_size_variants = [];
+foreach ($items as $item) {
+    $query = "SELECT * FROM item_size_variants WHERE item_id = ? ORDER BY size_price";
+    $stmt = $db->prepare($query);
+    $stmt->execute([$item['id']]);
+    $item_size_variants[$item['id']] = $stmt->fetchAll();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -145,6 +222,7 @@ $items = $stmt->fetchAll();
         .btn-secondary { background: #6c757d; color: white; }
         .btn-danger { background: #dc3545; color: white; }
         .btn-warning { background: #ffc107; color: #212529; }
+        .btn-info { background: #17a2b8; color: white; }
         
         .btn-admin:hover {
             opacity: 0.9;
@@ -185,8 +263,10 @@ $items = $stmt->fetchAll();
             padding: 30px;
             border-radius: 10px;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
             position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         
         .close {
@@ -231,6 +311,63 @@ $items = $stmt->fetchAll();
             border-color: #20bf55;
         }
         
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        
+        .size-variants-section {
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            background: #f8f9fa;
+        }
+        
+        .size-variants-section h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        
+        .size-variant-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 10px;
+        }
+        
+        .size-variant-row input {
+            margin: 0;
+        }
+        
+        .remove-size-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .add-size-btn {
+            background: #20bf55;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
         .success-message {
             background: #d4edda;
             color: #155724;
@@ -248,6 +385,22 @@ $items = $stmt->fetchAll();
             margin-bottom: 20px;
             border: 1px solid #f5c6cb;
         }
+        
+        .size-variants-display {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .size-variant-tag {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 1px;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -255,7 +408,7 @@ $items = $stmt->fetchAll();
         <div class="admin-header">
             <div>
                 <h1>🍕 Manage Menu Items</h1>
-                <p>Add, edit, and manage menu items</p>
+                <p>Add, edit, and manage menu items with size variants</p>
             </div>
             <div>
                 <button class="btn-admin btn-primary" onclick="showAddModal()">
@@ -271,12 +424,17 @@ $items = $stmt->fetchAll();
             <div class="success-message"><?php echo htmlspecialchars($_GET['success']); ?></div>
         <?php endif; ?>
         
+        <?php if (isset($_GET['error'])): ?>
+            <div class="error-message"><?php echo htmlspecialchars($_GET['error']); ?></div>
+        <?php endif; ?>
+        
         <table class="items-table">
             <thead>
                 <tr>
                     <th>Name</th>
                     <th>Category</th>
                     <th>Price</th>
+                    <th>Size Variants</th>
                     <th>Description</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -287,7 +445,26 @@ $items = $stmt->fetchAll();
                 <tr>
                     <td><?php echo htmlspecialchars($item['name']); ?></td>
                     <td><?php echo htmlspecialchars($item['category_name']); ?></td>
-                    <td>PKR <?php echo number_format($item['price'], 2); ?></td>
+                    <td>
+                        <?php if ($item['has_size_variants']): ?>
+                            <span style="color: #20bf55; font-weight: 600;">Multiple Sizes</span>
+                        <?php else: ?>
+                            PKR <?php echo number_format($item['price'], 2); ?>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php if ($item['has_size_variants'] && isset($item_size_variants[$item['id']])): ?>
+                            <div class="size-variants-display">
+                                <?php foreach ($item_size_variants[$item['id']] as $variant): ?>
+                                    <span class="size-variant-tag">
+                                        <?php echo htmlspecialchars($variant['size_name']); ?>: PKR <?php echo number_format($variant['size_price'], 2); ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <span style="color: #999;">No variants</span>
+                        <?php endif; ?>
+                    </td>
                     <td><?php echo htmlspecialchars($item['description'] ?? ''); ?></td>
                     <td>
                         <span class="btn-admin <?php echo $item['is_available'] ? 'btn-primary' : 'btn-secondary'; ?>" style="padding: 4px 8px; font-size: 12px;">
@@ -295,7 +472,7 @@ $items = $stmt->fetchAll();
                         </span>
                     </td>
                     <td>
-                        <button class="btn-admin btn-warning" onclick="showEditModal(<?php echo $item['id']; ?>, '<?php echo addslashes($item['name']); ?>', <?php echo $item['category_id']; ?>, <?php echo $item['price']; ?>, '<?php echo addslashes($item['description'] ?? ''); ?>')">
+                        <button class="btn-admin btn-warning" onclick="showEditModal(<?php echo $item['id']; ?>, '<?php echo addslashes($item['name']); ?>', <?php echo $item['category_id']; ?>, <?php echo $item['price']; ?>, '<?php echo addslashes($item['description'] ?? ''); ?>', <?php echo $item['has_size_variants']; ?>, <?php echo htmlspecialchars(json_encode($item_size_variants[$item['id']] ?? [])); ?>)">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn-admin btn-danger" onclick="deleteItem(<?php echo $item['id']; ?>, '<?php echo addslashes($item['name']); ?>')">
@@ -337,6 +514,23 @@ $items = $stmt->fetchAll();
                     <label>Description</label>
                     <textarea name="description" rows="3"></textarea>
                 </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="has_size_variants" name="has_size_variants" onchange="toggleSizeVariants()">
+                        <label for="has_size_variants">Enable Size Variants</label>
+                    </div>
+                </div>
+                <div id="size-variants-section" class="size-variants-section" style="display: none;">
+                    <h4>Size Variants</h4>
+                    <div id="size-variants-container">
+                        <div class="size-variant-row">
+                            <input type="text" name="size_variants[0][name]" placeholder="Size Name (e.g., Small)" required>
+                            <input type="number" name="size_variants[0][price]" step="0.01" placeholder="Price" required>
+                            <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+                        </div>
+                    </div>
+                    <button type="button" class="add-size-btn" onclick="addSizeVariant()">Add Another Size</button>
+                </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-admin btn-primary">Add Item</button>
                     <button type="button" class="btn-admin btn-secondary" onclick="closeModal('addModal')">Cancel</button>
@@ -375,6 +569,19 @@ $items = $stmt->fetchAll();
                     <label>Description</label>
                     <textarea name="description" id="edit_description" rows="3"></textarea>
                 </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="edit_has_size_variants" name="has_size_variants" onchange="toggleEditSizeVariants()">
+                        <label for="edit_has_size_variants">Enable Size Variants</label>
+                    </div>
+                </div>
+                <div id="edit-size-variants-section" class="size-variants-section" style="display: none;">
+                    <h4>Size Variants</h4>
+                    <div id="edit-size-variants-container">
+                        <!-- Size variants will be loaded here -->
+                    </div>
+                    <button type="button" class="add-size-btn" onclick="addEditSizeVariant()">Add Another Size</button>
+                </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-admin btn-primary">Update Item</button>
                     <button type="button" class="btn-admin btn-secondary" onclick="closeModal('editModal')">Cancel</button>
@@ -384,16 +591,28 @@ $items = $stmt->fetchAll();
     </div>
     
     <script>
+        let sizeVariantCounter = 1;
+        let editSizeVariantCounter = 0;
+        
         function showAddModal() {
             document.getElementById('addModal').style.display = 'block';
+            // Reset form
+            document.getElementById('has_size_variants').checked = false;
+            toggleSizeVariants();
         }
         
-        function showEditModal(id, name, categoryId, price, description) {
+        function showEditModal(id, name, categoryId, price, description, hasSizeVariants, sizeVariants) {
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_name').value = name;
             document.getElementById('edit_category_id').value = categoryId;
             document.getElementById('edit_price').value = price;
             document.getElementById('edit_description').value = description;
+            document.getElementById('edit_has_size_variants').checked = hasSizeVariants;
+            
+            // Load size variants
+            loadEditSizeVariants(sizeVariants);
+            toggleEditSizeVariants();
+            
             document.getElementById('editModal').style.display = 'block';
         }
         
@@ -411,6 +630,91 @@ $items = $stmt->fetchAll();
                 `;
                 document.body.appendChild(form);
                 form.submit();
+            }
+        }
+        
+        function toggleSizeVariants() {
+            const checkbox = document.getElementById('has_size_variants');
+            const section = document.getElementById('size-variants-section');
+            const priceInput = document.querySelector('input[name="price"]');
+            
+            if (checkbox.checked) {
+                section.style.display = 'block';
+                priceInput.required = false;
+                priceInput.placeholder = 'Base price (optional)';
+            } else {
+                section.style.display = 'none';
+                priceInput.required = true;
+                priceInput.placeholder = 'Price';
+            }
+        }
+        
+        function toggleEditSizeVariants() {
+            const checkbox = document.getElementById('edit_has_size_variants');
+            const section = document.getElementById('edit-size-variants-section');
+            const priceInput = document.getElementById('edit_price');
+            
+            if (checkbox.checked) {
+                section.style.display = 'block';
+                priceInput.required = false;
+                priceInput.placeholder = 'Base price (optional)';
+            } else {
+                section.style.display = 'none';
+                priceInput.required = true;
+                priceInput.placeholder = 'Price';
+            }
+        }
+        
+        function addSizeVariant() {
+            const container = document.getElementById('size-variants-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'size-variant-row';
+            newRow.innerHTML = `
+                <input type="text" name="size_variants[${sizeVariantCounter}][name]" placeholder="Size Name (e.g., Medium)" required>
+                <input type="number" name="size_variants[${sizeVariantCounter}][price]" step="0.01" placeholder="Price" required>
+                <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+            `;
+            container.appendChild(newRow);
+            sizeVariantCounter++;
+        }
+        
+        function addEditSizeVariant() {
+            const container = document.getElementById('edit-size-variants-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'size-variant-row';
+            newRow.innerHTML = `
+                <input type="text" name="size_variants[${editSizeVariantCounter}][name]" placeholder="Size Name (e.g., Medium)" required>
+                <input type="number" name="size_variants[${editSizeVariantCounter}][price]" step="0.01" placeholder="Price" required>
+                <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+            `;
+            container.appendChild(newRow);
+            editSizeVariantCounter++;
+        }
+        
+        function removeSizeVariant(button) {
+            button.parentElement.remove();
+        }
+        
+        function loadEditSizeVariants(sizeVariants) {
+            const container = document.getElementById('edit-size-variants-container');
+            container.innerHTML = '';
+            editSizeVariantCounter = 0;
+            
+            if (sizeVariants && sizeVariants.length > 0) {
+                sizeVariants.forEach(variant => {
+                    const newRow = document.createElement('div');
+                    newRow.className = 'size-variant-row';
+                    newRow.innerHTML = `
+                        <input type="text" name="size_variants[${editSizeVariantCounter}][name]" value="${variant.size_name}" placeholder="Size Name" required>
+                        <input type="number" name="size_variants[${editSizeVariantCounter}][price]" value="${variant.size_price}" step="0.01" placeholder="Price" required>
+                        <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+                    `;
+                    container.appendChild(newRow);
+                    editSizeVariantCounter++;
+                });
+            } else {
+                // Add one empty row
+                addEditSizeVariant();
             }
         }
         

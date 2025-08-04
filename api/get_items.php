@@ -1,35 +1,51 @@
 <?php
-/**
- * Get Items by Category API
- * Fast Food POS System
- */
+session_start();
+require_once dirname(__DIR__) . '/config/database.php';
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET');
-header('Access-Control-Allow-Headers: Content-Type');
+// Check if user is logged in (but don't fail if not, just log it)
+if (!isLoggedIn()) {
+    // Log the issue but don't fail completely
+    error_log("API get_items.php: User not logged in, but continuing...");
+}
 
-require_once '../config/database.php';
+// Get category ID from request
+$categoryId = $_GET['category_id'] ?? null;
+
+if (!$categoryId) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Category ID is required']);
+    exit();
+}
 
 try {
-    // Get category ID from request
-    $categoryId = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 1;
-    
-    // Validate category ID
-    if ($categoryId <= 0) {
-        throw new Exception('Invalid category ID');
-    }
-    
-    // Fetch items for the category
-    $query = "SELECT id, name, price, description, image FROM items 
-              WHERE category_id = ? AND is_available = 1 
-              ORDER BY name";
+    // Get items for the category
+    $query = "SELECT i.*, c.name as category_name 
+              FROM items i 
+              LEFT JOIN categories c ON i.category_id = c.id 
+              WHERE i.category_id = ? AND i.is_available = 1 
+              ORDER BY i.name";
     
     $stmt = $db->prepare($query);
     $stmt->execute([$categoryId]);
-    $items = $stmt->fetchAll();
+    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Return success response
+    // For each item, get size variants if they exist
+    foreach ($items as &$item) {
+        if ($item['has_size_variants']) {
+            $sizeQuery = "SELECT size_name, size_price, display_order 
+                         FROM item_size_variants 
+                         WHERE item_id = ? AND is_active = 1 
+                         ORDER BY display_order, size_name";
+            $sizeStmt = $db->prepare($sizeQuery);
+            $sizeStmt->execute([$item['id']]);
+            $item['size_variants'] = $sizeStmt->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $item['size_variants'] = [];
+        }
+    }
+    
+    // Return items as JSON
+    header('Content-Type: application/json');
     echo json_encode([
         'success' => true,
         'items' => $items,
@@ -38,12 +54,7 @@ try {
     ]);
     
 } catch (Exception $e) {
-    // Return error response
     http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage(),
-        'error' => 'Database error occurred'
-    ]);
+    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
 }
 ?> 

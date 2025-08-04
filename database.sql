@@ -39,9 +39,23 @@ CREATE TABLE items (
     description TEXT,
     is_available BOOLEAN DEFAULT TRUE,
     stock_quantity INT DEFAULT 0,
+    has_size_variants BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
+-- Item size variants table for pizza sizes
+CREATE TABLE item_size_variants (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    item_id INT NOT NULL,
+    size_name VARCHAR(50) NOT NULL,
+    size_price DECIMAL(10,2) NOT NULL,
+    display_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_item_size (item_id, size_name)
 );
 
 -- Customers table for customer information
@@ -83,6 +97,7 @@ CREATE TABLE order_items (
     order_id INT NOT NULL,
     item_id INT NOT NULL,
     item_name VARCHAR(200) NOT NULL,
+    size_name VARCHAR(50) DEFAULT NULL,
     quantity INT NOT NULL,
     unit_price DECIMAL(10,2) NOT NULL,
     total_price DECIMAL(10,2) NOT NULL,
@@ -102,124 +117,99 @@ CREATE TABLE settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Special Offers table for promotional offers
+-- Special offers table for promotions and discounts
 CREATE TABLE special_offers (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    title VARCHAR(200) NOT NULL,
+    name VARCHAR(200) NOT NULL,
     description TEXT,
-    original_price DECIMAL(10,2) NOT NULL,
-    discounted_price DECIMAL(10,2) NOT NULL,
-    discount_percentage DECIMAL(5,2),
-    items_included TEXT,
-    image VARCHAR(255) DEFAULT 'default-offer.jpg',
-    is_active BOOLEAN DEFAULT TRUE,
+    discount_type ENUM('percentage', 'fixed_amount') DEFAULT 'percentage',
+    discount_value DECIMAL(10,2) NOT NULL,
+    minimum_order_amount DECIMAL(10,2) DEFAULT 0.00,
     start_date DATE,
     end_date DATE,
-    priority INT DEFAULT 1,
-    created_by INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Insert default admin user
 INSERT INTO users (name, username, password, role) VALUES 
-('Admin User', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'); -- password: password
+('Admin User', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 
--- Insert default categories based on the POS image
-INSERT INTO categories (name, icon, image, display_order) VALUES 
-('PIZZA', 'pizza-icon.png', 'pizza-category.jpg', 1),
-('BURGERS', 'burger-icon.png', 'burger-category.jpg', 2),
-('FRIED ITEMS', 'fried-icon.png', 'fried-category.jpg', 3),
-('WINGS', 'wings-icon.png', 'wings-category.jpg', 4),
-('SOUP', 'soup-icon.png', 'soup-category.jpg', 5),
-('CHINESE', 'chinese-icon.png', 'chinese-category.jpg', 6),
-('COLD DRINKS', 'cold-drink-icon.png', 'cold-drink-category.jpg', 7),
-('HOT DRINKS', 'hot-drink-icon.png', 'hot-drink-category.jpg', 8),
-('SHAWARMA', 'shawarma-icon.png', 'shawarma-category.jpg', 9),
-('FRIES', 'fries-icon.png', 'fries-category.jpg', 10),
-('SHAKES', 'shake-icon.png', 'shake-category.jpg', 11),
-('DELIVERY', 'delivery-icon.png', 'delivery-category.jpg', 12),
-('SERVICES', 'service-icon.png', 'service-category.jpg', 13),
-('SANDWICH', 'sandwich-icon.png', 'sandwich-category.jpg', 14);
+-- Insert default categories
+INSERT INTO categories (name, display_order) VALUES 
+('PIZZA', 1),
+('BURGERS', 2),
+('FRIED ITEMS', 3),
+('WINGS', 4),
+('SOUP', 5),
+('CHINESE', 6),
+('COLD DRINKS', 7),
+('HOT DRINKS', 8),
+('SHAWARMA', 9),
+('FRIES', 10),
+('SHAKES', 11),
+('SANDWICH', 12);
 
--- Insert sample items for each category
+-- Insert sample pizza items with size variants
+INSERT INTO items (name, category_id, price, description, has_size_variants) VALUES 
+('Margherita Pizza', 1, 0.00, 'Classic tomato sauce with mozzarella cheese', TRUE),
+('Pepperoni Pizza', 1, 0.00, 'Spicy pepperoni with melted cheese', TRUE),
+('BBQ Chicken Pizza', 1, 0.00, 'BBQ sauce with grilled chicken and onions', TRUE),
+('Supreme Pizza', 1, 0.00, 'Loaded with pepperoni, sausage, mushrooms, and vegetables', TRUE);
+
+-- Insert size variants for pizza items
+INSERT INTO item_size_variants (item_id, size_name, size_price, display_order) VALUES 
+-- Margherita Pizza sizes
+(1, 'Small', 800.00, 1),
+(1, 'Medium', 1200.00, 2),
+(1, 'Large', 1600.00, 3),
+(1, 'Extra Large', 2000.00, 4),
+
+-- Pepperoni Pizza sizes
+(2, 'Small', 900.00, 1),
+(2, 'Medium', 1300.00, 2),
+(2, 'Large', 1700.00, 3),
+(2, 'Extra Large', 2100.00, 4),
+
+-- BBQ Chicken Pizza sizes
+(3, 'Small', 1000.00, 1),
+(3, 'Medium', 1400.00, 2),
+(3, 'Large', 1800.00, 3),
+(3, 'Extra Large', 2200.00, 4),
+
+-- Supreme Pizza sizes
+(4, 'Small', 1100.00, 1),
+(4, 'Medium', 1500.00, 2),
+(4, 'Large', 1900.00, 3),
+(4, 'Extra Large', 2300.00, 4);
+
+-- Insert other menu items (non-pizza)
 INSERT INTO items (name, category_id, price, description) VALUES 
--- Pizza items
-('US SPECIAL PIZZA', 1, 550.00, 'Delicious US style pizza with premium toppings'),
-('MARGHERITA PIZZA', 1, 450.00, 'Classic margherita with tomato and mozzarella'),
-('PEPPERONI PIZZA', 1, 500.00, 'Spicy pepperoni pizza with melted cheese'),
-
--- Burger items
-('ZINGER BURGER', 2, 500.00, 'Spicy chicken zinger burger'),
-('CHICKEN BURGER', 2, 400.00, 'Grilled chicken burger with fresh vegetables'),
-('BEEF BURGER', 2, 450.00, 'Juicy beef burger with cheese'),
-
--- Fried items
-('CHICKEN WINGS', 3, 300.00, 'Crispy fried chicken wings'),
-('FISH FINGERS', 3, 250.00, 'Breaded fish fingers with tartar sauce'),
-('ONION RINGS', 3, 200.00, 'Crispy onion rings'),
-
--- Wings
-('BBQ WINGS', 4, 350.00, 'BBQ flavored chicken wings'),
-('HOT WINGS', 4, 350.00, 'Spicy hot chicken wings'),
-
--- Soup
-('CHICKEN SOUP', 5, 180.00, 'Homemade chicken soup'),
-('TOMATO SOUP', 5, 150.00, 'Fresh tomato soup'),
-
--- Chinese
-('FRIED RICE', 6, 280.00, 'Chinese style fried rice'),
-('CHOW MEIN', 6, 300.00, 'Stir-fried noodles with vegetables'),
-
--- Cold drinks
-('SMALL', 7, 170.00, 'Small cold drink'),
-('1 LTR', 7, 250.00, '1 liter cold drink'),
-('COLA', 7, 180.00, 'Refreshing cola drink'),
-
--- Hot drinks
-('COFFEE', 8, 120.00, 'Hot coffee'),
-('TEA', 8, 80.00, 'Hot tea'),
-
--- Shawarma
-('CHICKEN SHAWARMA', 9, 220.00, 'Grilled chicken shawarma'),
-('BEEF SHAWARMA', 9, 250.00, 'Grilled beef shawarma'),
-
--- Fries
-('FRENCH FRIES', 10, 150.00, 'Crispy french fries'),
-('CHEESE FRIES', 10, 180.00, 'French fries with cheese'),
-
--- Shakes
-('CHOCOLATE SHAKE', 11, 200.00, 'Chocolate milkshake'),
-('VANILLA SHAKE', 11, 180.00, 'Vanilla milkshake'),
-
--- Services
-('DELIVERY FEE', 12, 50.00, 'Delivery service charge'),
-('PACKAGING', 13, 20.00, 'Packaging charge'),
-
--- Sandwich
-('CHICKEN SANDWICH', 14, 180.00, 'Grilled chicken sandwich'),
-('VEG SANDWICH', 14, 150.00, 'Vegetable sandwich');
+('Chicken Burger', 2, 450.00, 'Grilled chicken with fresh vegetables'),
+('Beef Burger', 2, 500.00, 'Juicy beef patty with cheese and toppings'),
+('French Fries', 10, 200.00, 'Crispy golden fries'),
+('Chicken Wings', 4, 600.00, 'Spicy buffalo wings'),
+('Coca Cola', 7, 150.00, 'Refreshing soft drink'),
+('Coffee', 8, 200.00, 'Hot brewed coffee');
 
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value, description) VALUES 
-('company_name', 'Fast Food POS', 'Company name for receipts and reports'),
-('tax_rate', '5.00', 'Tax rate percentage'),
+('company_name', 'Fast Food POS', 'Company name for receipts and invoices'),
+('company_address', '123 Main Street, City, Country', 'Company address'),
+('company_phone', '+92 300 1234567', 'Company phone number'),
+('company_email', 'info@fastfoodpos.com', 'Company email address'),
+('company_website', 'www.fastfoodpos.com', 'Company website'),
+('company_gst', 'GST123456789', 'Company GST number'),
+('company_license', 'LIC123456789', 'Business license number'),
+('tax_rate', '15.00', 'Tax rate percentage'),
 ('currency', 'PKR', 'Currency symbol'),
-('receipt_footer', 'Thank you for your order!', 'Footer text for receipts'),
-('auto_order_number', 'true', 'Auto generate order numbers'),
-('order_prefix', 'ORD', 'Prefix for order numbers');
-
--- Insert sample special offers
-INSERT INTO special_offers (title, description, original_price, discounted_price, discount_percentage, items_included, is_active, start_date, end_date, priority, created_by) VALUES 
-('🍕 Pizza Combo Special', 'Any Pizza + Drink + Fries', 750.00, 650.00, 13.33, 'Pizza, Cold Drink, French Fries', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 2, 1),
-('🍔 Burger Special', 'Any Burger + Fries + Drink', 680.00, 600.00, 11.76, 'Burger, French Fries, Cold Drink', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 1, 1),
-('🍗 Wings Combo', 'BBQ Wings + Fries + Drink', 500.00, 450.00, 10.00, 'BBQ Wings, French Fries, Cold Drink', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 1, 1),
-('🥤 Family Pack', '2 Pizzas + 2 Drinks + Fries', 1200.00, 1000.00, 16.67, '2 Pizzas, 2 Cold Drinks, French Fries', TRUE, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 3, 1);
+('receipt_footer', 'Thank you for your order!', 'Footer message for receipts'),
+('auto_order_number', 'true', 'Auto-generate order numbers');
 
 -- Create indexes for better performance
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_orders_created_at ON orders(created_at);
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX idx_items_category_id ON items(category_id);
-CREATE INDEX idx_items_is_available ON items(is_available); 
+CREATE INDEX idx_items_is_available ON items(is_available);
+CREATE INDEX idx_item_size_variants_item_id ON item_size_variants(item_id); 
