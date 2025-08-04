@@ -10,6 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] === 'update_settings') {
         $settings = [
             'company_name' => sanitize($_POST['company_name']),
+            'company_address' => sanitize($_POST['company_address']),
+            'company_phone' => sanitize($_POST['company_phone']),
+            'company_email' => sanitize($_POST['company_email']),
+            'company_website' => sanitize($_POST['company_website']),
+            'company_gst' => sanitize($_POST['company_gst']),
+            'company_license' => sanitize($_POST['company_license']),
             'tax_rate' => (float)$_POST['tax_rate'],
             'currency' => sanitize($_POST['currency']),
             'receipt_footer' => sanitize($_POST['receipt_footer']),
@@ -41,7 +47,13 @@ while ($row = $stmt->fetch()) {
 // Set defaults if not found
 $defaults = [
     'company_name' => 'Fast Food POS',
-    'tax_rate' => '5.00',
+    'company_address' => '123 Main Street, City, Country',
+    'company_phone' => '+92 300 1234567',
+    'company_email' => 'info@fastfoodpos.com',
+    'company_website' => 'www.fastfoodpos.com',
+    'company_gst' => 'GST123456789',
+    'company_license' => 'LIC123456789',
+    'tax_rate' => '15.00',
     'currency' => 'PKR',
     'receipt_footer' => 'Thank you for your order!',
     'auto_order_number' => 'true',
@@ -223,6 +235,41 @@ foreach ($defaults as $key => $default) {
                     <label for="company_name">Company Name</label>
                     <input type="text" id="company_name" name="company_name" 
                            value="<?php echo htmlspecialchars($settings['company_name']); ?>" required>
+                </div>
+                <div class="form-group">
+                    <label for="company_address">Company Address</label>
+                    <textarea id="company_address" name="company_address" rows="3" 
+                              placeholder="Enter complete company address"><?php echo htmlspecialchars($settings['company_address']); ?></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="company_phone">Phone Number</label>
+                    <input type="text" id="company_phone" name="company_phone" 
+                           value="<?php echo htmlspecialchars($settings['company_phone']); ?>" 
+                           placeholder="+92 300 1234567">
+                </div>
+                <div class="form-group">
+                    <label for="company_email">Email Address</label>
+                    <input type="email" id="company_email" name="company_email" 
+                           value="<?php echo htmlspecialchars($settings['company_email']); ?>" 
+                           placeholder="info@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="company_website">Website</label>
+                    <input type="url" id="company_website" name="company_website" 
+                           value="<?php echo htmlspecialchars($settings['company_website']); ?>" 
+                           placeholder="www.company.com">
+                </div>
+                <div class="form-group">
+                    <label for="company_gst">GST Number</label>
+                    <input type="text" id="company_gst" name="company_gst" 
+                           value="<?php echo htmlspecialchars($settings['company_gst']); ?>" 
+                           placeholder="GST123456789">
+                </div>
+                <div class="form-group">
+                    <label for="company_license">Business License</label>
+                    <input type="text" id="company_license" name="company_license" 
+                           value="<?php echo htmlspecialchars($settings['company_license']); ?>" 
+                           placeholder="LIC123456789">
                 </div>
             </div>
             

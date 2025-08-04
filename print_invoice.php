@@ -256,12 +256,20 @@ $qrData = json_encode([
     <div class="invoice-container">
         <!-- Header -->
         <div class="header">
-            <div class="restaurant-name">PIZZA POS</div>
+            <div class="restaurant-name"><?php echo htmlspecialchars(getSetting('company_name') ?: 'PIZZA POS'); ?></div>
             <div class="restaurant-info">
-                123 Main Street<br>
-                City, State 12345<br>
-                Phone: (555) 123-4567<br>
-                Email: info@pizzapos.com
+                <?php if (getSetting('company_address')): ?>
+                    <?php echo htmlspecialchars(getSetting('company_address')); ?><br>
+                <?php endif; ?>
+                <?php if (getSetting('company_phone')): ?>
+                    Phone: <?php echo htmlspecialchars(getSetting('company_phone')); ?><br>
+                <?php endif; ?>
+                <?php if (getSetting('company_email')): ?>
+                    Email: <?php echo htmlspecialchars(getSetting('company_email')); ?><br>
+                <?php endif; ?>
+                <?php if (getSetting('company_website')): ?>
+                    <?php echo htmlspecialchars(getSetting('company_website')); ?>
+                <?php endif; ?>
             </div>
         </div>
         
@@ -337,8 +345,8 @@ $qrData = json_encode([
             <div class="item-row">
                 <span class="item-name"><?php echo htmlspecialchars($item['item_name']); ?></span>
                 <span class="item-qty"><?php echo $item['quantity']; ?></span>
-                <span class="item-price">PKR <?php echo number_format($item['unit_price'], 2); ?></span>
-                <span class="item-total">PKR <?php echo number_format($item['total_price'], 2); ?></span>
+                <span class="item-price"><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($item['unit_price'], 2); ?></span>
+                <span class="item-total"><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($item['total_price'], 2); ?></span>
             </div>
             <?php if ($item['notes']): ?>
             <div class="item-row" style="font-size: 10px; color: #666; padding-left: 10px;">
@@ -355,29 +363,34 @@ $qrData = json_encode([
         <div class="totals-section">
             <div class="total-row">
                 <span class="total-label">Subtotal:</span>
-                <span>PKR <?php echo number_format($order['subtotal'], 2); ?></span>
+                <span><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['subtotal'], 2); ?></span>
             </div>
             <div class="total-row">
-                <span class="total-label">Tax (15%):</span>
-                <span>PKR <?php echo number_format($order['tax_amount'], 2); ?></span>
+                <span class="total-label">Tax (<?php echo getSetting('tax_rate') ?: '15'; ?>%):</span>
+                <span><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['tax_amount'], 2); ?></span>
             </div>
             <div class="total-row grand-total">
                 <span class="total-label">Total:</span>
-                <span>PKR <?php echo number_format($order['total_amount'], 2); ?></span>
+                <span><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['total_amount'], 2); ?></span>
             </div>
         </div>
         
         <!-- QR Code -->
         <div class="qr-section">
             <div id="qr-code" class="qr-code"></div>
-            <div class="thank-you">Thank you for your order!</div>
+            <div class="thank-you"><?php echo htmlspecialchars(getSetting('receipt_footer') ?: 'Thank you for your order!'); ?></div>
         </div>
         
         <!-- Footer -->
         <div class="footer">
             <div style="font-size: 10px; color: #666;">
-                For any queries, please contact us<br>
-                Visit us again!
+                <?php if (getSetting('company_phone')): ?>
+                    For any queries, please contact us at <?php echo htmlspecialchars(getSetting('company_phone')); ?><br>
+                <?php else: ?>
+                    For any queries, please contact us<br>
+                <?php endif; ?>
+                Visit us again!<br>
+                <?php echo htmlspecialchars(getSetting('company_name') ?: 'PIZZA POS'); ?>
             </div>
         </div>
     </div>

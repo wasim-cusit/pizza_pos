@@ -29,8 +29,7 @@ if (empty($items)) {
     $items = $stmt->fetchAll();
 }
 
-// Debug: Log the number of items loaded
-error_log("Loaded " . count($items) . " items for category " . $defaultCategoryId);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -59,25 +58,10 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
             </div>
         </div>
         <div class="header-right">
-            <!-- Logout Button For Temp -->
+            <!-- Logout Button -->
             <button class="nav-btn">
                 <i class="fas fa-sign-out-alt"></i> <a href="./logout.php">Logout</a>
             </button>   
-
-            <!-- Debug button for testing -->
-            <button class="nav-btn" onclick="testCategoryLoading()" style="background: #f59e0b;">
-                <i class="fas fa-bug"></i> Test Categories
-            </button>
-
-            <!-- Debug button for checking category cards -->
-            <button class="nav-btn" onclick="checkCategoryCards()" style="background: #3b82f6;">
-                <i class="fas fa-search"></i> Check Categories
-            </button>
-
-            <!-- Debug button for testing individual categories -->
-            <button class="nav-btn" onclick="testIndividualCategories()" style="background: #10b981;">
-                <i class="fas fa-play"></i> Test Individual
-            </button>
 
             <button class="nav-btn" onclick="goHome()">
                 <i class="fas fa-home"></i> Home
@@ -100,44 +84,58 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
         <div class="cart-sidebar" style="background: white; border-right: 1px solid #e2e8f0; width: 350px; display: flex; flex-direction: column;">
             <div class="cart-header" style="background: #20bf55; color: white; padding: 15px; border-radius: 0;">
                 <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🛒 Order Cart</h3>
-                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">Items: <span id="cart-item-count">0</span></p>
+                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">Item(s): <span id="cart-item-count">0</span></p>
             </div>
             
             <div class="cart-items" id="cart-items" style="flex: 1; overflow-y: auto; padding: 10px;">
                 <!-- Cart items will be loaded here -->
             </div>
             
-            <!-- Customer Section -->
-            <div class="customer-section" style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" class="customer-input" id="customer-name" placeholder="Customer" 
-                           style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; background: white;">
-                    <input type="text" class="customer-input" id="customer-postcode" placeholder="Postcode" 
-                           style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; background: white;">
+            <!-- Customer Selection -->
+            <div style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Customer:</label>
+                        <input type="text" id="customer-name" placeholder="Enter customer name" 
+                               style="width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Postcode:</label>
+                        <input type="text" id="customer-postcode" placeholder="Enter postcode" 
+                               style="width: 100%; padding: 8px; border: 2px solid #e2e8f0; border-radius: 6px;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="selectCustomer()" 
+                            style="flex: 1; padding: 10px; border: none; border-radius: 6px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-user"></i> Select
+                    </button>
+                    <!-- <button onclick="clearCart()" 
+                            style="flex: 1; padding: 10px; border: none; border-radius: 6px; background: linear-gradient(135deg, #ef4444, #dc2626); color: white; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-trash"></i> Clear Items
+                    </button> -->
                 </div>
             </div>
             
-            <!-- Select Button Section -->
-            <div style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
-                <button class="select-btn" onclick="selectCustomer()" 
-                        style="width: 100%; padding: 10px; background: #20bf55; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500;">
-                    <i class="fas fa-user"></i> Select
-                </button>
-            </div>
-            
-            <!-- Payment Section -->
+            <!-- Payment Section -->    
             <div class="payment-section" style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
                 <div class="payment-amount" id="total-amount">
                     <!-- Payment display will be updated by JavaScript -->
                 </div>
             </div>
             
-            <!-- Complete Order Button -->
+            <!-- Order Action Buttons -->
             <div style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
-                <button onclick="showPaymentModal()" 
-                        style="width: 100%; padding: 12px; border: none; border-radius: 6px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600; font-size: 14px;">
-                    <i class="fas fa-check-circle"></i> Complete Order
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="showPaymentModal()" 
+                            style="flex: 1; padding: 12px; border: none; border-radius: 6px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600; font-size: 14px;">
+                        <i class="fas fa-check-circle"></i> Complete Order
+                    </button>
+                    <button onclick="startNewOrder()" 
+                            style="flex: 1; padding: 12px; border: none; border-radius: 6px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; cursor: pointer; font-weight: 600; font-size: 14px;">
+                        <i class="fas fa-plus"></i> Start New Order
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -182,7 +180,6 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
                         <div style="text-align: center; padding: 40px; color: #666;">
                             <div class="loading"></div>
                             <p>Loading items...</p>
-                            <p style="font-size: 12px; color: #999;">Debug: No items found in PHP</p>
                         </div>
                     <?php else: ?>
                         <?php foreach ($items as $item): ?>
@@ -218,9 +215,7 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
                             <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
-                        <script>
-                            console.log('PHP loaded <?php echo count($items); ?> items');
-                        </script>
+
                     <?php endif; ?>
                 </div>
             </div>
@@ -228,9 +223,6 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
             <!-- Bottom Section -->
             <div class="bottom-section">
                 <div class="action-buttons">
-                    <!-- <button class="action-btn" onclick="showPaymentModal()" style="background: linear-gradient(135deg, #20bf55, #01baef); color: white; font-weight: 600;">
-                        <i class="fas fa-check-circle"></i> Complete Order
-                    </button> -->
                     <button class="action-btn" onclick="showDressings()">
                         <i class="fas fa-bottle-water"></i> Dressings
                     </button>
@@ -255,25 +247,15 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
                     <button class="action-btn" onclick="showPizza()">
                         <i class="fas fa-pizza-slice"></i> Pizza
                     </button>
-                    <button class="action-btn" onclick="showZebra()">
-                        <i class="fas fa-print"></i> Zebra
-                    </button>
                     <button class="action-btn" onclick="showEasyPad()">
                         <i class="fas fa-calculator"></i> EasyPad
                     </button>
-                    <button class="action-btn" onclick="updatePaymentDisplay()" style="background: #17a2b8;">
-                        <i class="fas fa-sync"></i> Update Payment
-                    </button>
-
                 </div>
             </div>
         </div>
 
         <!-- Right Sidebar -->
         <div class="right-sidebar">
-            <!-- <button class="sidebar-btn" onclick="showPaymentModal()" style="background: linear-gradient(135deg, #20bf55, #01baef); color: white; font-weight: 600;">
-                <i class="fas fa-check-circle"></i> Complete Order
-            </button> -->
             <button class="sidebar-btn" onclick="processOrder()">
                 <i class="fas fa-receipt"></i> Order
             </button>
@@ -305,8 +287,8 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
     <div id="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="assets/js/cart.js"></script>
-    <script src="assets/js/app.js"></script>
+    <script src="assets/js/cart.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/js/app.js?v=<?php echo time(); ?>"></script>
     <script>
         // Initialize the POS system
         document.addEventListener('DOMContentLoaded', function() {

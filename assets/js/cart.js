@@ -8,6 +8,9 @@ let cart = [];
 let selectedItemIndex = -1;
 // selectedCartItem will be declared globally in app.js to avoid conflicts
 
+// Make cart globally accessible
+window.cart = cart;
+
 // Initialize cart from localStorage
 document.addEventListener('DOMContentLoaded', function() {
     loadCartFromStorage();
@@ -24,12 +27,11 @@ function addToCart(itemId, itemName, price, quantity = 1) {
     const stringItemId = String(itemId);
     
     // Check if item already exists in cart
-    const existingItem = cart.find(item => String(item.id) === stringItemId);
+    const existingItem = window.cart.find(item => String(item.id) === stringItemId);
     
     if (existingItem) {
         existingItem.quantity += safeQuantity;
         existingItem.totalPrice = existingItem.quantity * existingItem.price;
-        console.log('Updated existing item:', existingItem);
     } else {
         const newItem = {
             id: itemId,
@@ -38,9 +40,11 @@ function addToCart(itemId, itemName, price, quantity = 1) {
             quantity: safeQuantity,
             totalPrice: safePrice * safeQuantity
         };
-        cart.push(newItem);
-        console.log('Added new item:', newItem);
+        window.cart.push(newItem);
     }
+    
+    // Keep local cart in sync
+    cart = window.cart;
     
     // Save to localStorage
     saveCartToStorage();
@@ -50,13 +54,7 @@ function addToCart(itemId, itemName, price, quantity = 1) {
     
     // Force update payment display after a short delay to ensure it updates
     setTimeout(() => {
-        const totalAmount = document.getElementById('total-amount');
-        if (totalAmount) {
-            const total = getCartTotal();
-            const safeTotal = parseFloat(total) || 0;
-            totalAmount.textContent = `Payment PKR ${safeTotal.toFixed(2)}`;
-            console.log('Forced payment update:', safeTotal);
-        }
+        updatePaymentDisplay();
     }, 100);
     
     // Show success message
@@ -67,7 +65,9 @@ function addToCart(itemId, itemName, price, quantity = 1) {
 function removeFromCart(itemId) {
     // Ensure itemId is treated as a string for comparison
     const stringItemId = String(itemId);
-    cart = cart.filter(item => String(item.id) !== stringItemId);
+    window.cart = window.cart.filter(item => String(item.id) !== stringItemId);
+    // Keep local cart in sync
+    cart = window.cart;
     saveCartToStorage();
     updateCartDisplay();
     showToast('Item removed from cart', 'success');
@@ -77,7 +77,7 @@ function removeFromCart(itemId) {
 function updateItemQuantity(itemId, newQuantity) {
     // Ensure itemId is treated as a string for comparison
     const stringItemId = String(itemId);
-    const item = cart.find(item => String(item.id) === stringItemId);
+    const item = window.cart.find(item => String(item.id) === stringItemId);
     if (item) {
         const safeQuantity = Math.max(1, parseInt(newQuantity) || 1);
         item.quantity = safeQuantity;
@@ -100,10 +100,10 @@ function selectCartItem(element) {
         window.selectedCartItem = element; // Use global variable
         
         // Update the quantity display in controls
-        const quantity = element.querySelector('.quantity-display').textContent;
+        const quantitySpan = element.querySelector('span');
         const quantityDisplay = document.getElementById('selected-quantity');
-        if (quantityDisplay) {
-            quantityDisplay.textContent = quantity;
+        if (quantityDisplay && quantitySpan) {
+            quantityDisplay.textContent = quantitySpan.textContent;
         }
         
         // Add item ID to the element for reference
@@ -119,7 +119,7 @@ function increaseQuantity() {
     // Use selectedCartItem from the global scope
     if (window.selectedCartItem) {
         const selectedItemId = String(window.selectedCartItem.dataset.itemId);
-        const item = cart.find(item => String(item.id) === selectedItemId);
+        const item = window.cart.find(item => String(item.id) === selectedItemId);
         if (item) {
             item.quantity++;
             item.totalPrice = item.quantity * item.price;
@@ -141,7 +141,7 @@ function decreaseQuantity() {
     // Use selectedCartItem from the global scope
     if (window.selectedCartItem) {
         const selectedItemId = String(window.selectedCartItem.dataset.itemId);
-        const item = cart.find(item => String(item.id) === selectedItemId);
+        const item = window.cart.find(item => String(item.id) === selectedItemId);
         if (item) {
             if (item.quantity > 1) {
                 item.quantity--;
@@ -170,7 +170,7 @@ function deleteSelectedItem() {
     // Use selectedCartItem from the global scope
     if (window.selectedCartItem) {
         const selectedItemId = String(window.selectedCartItem.dataset.itemId);
-        const item = cart.find(item => String(item.id) === selectedItemId);
+        const item = window.cart.find(item => String(item.id) === selectedItemId);
         if (item) {
             removeFromCart(item.id);
             window.selectedCartItem = null;
@@ -188,38 +188,45 @@ function deleteSelectedItem() {
     }
 }
 
+
+
 // Update cart display
 function updateCartDisplay() {
+    
     const cartItemsContainer = document.getElementById('cart-items');
     const cartItemCount = document.getElementById('cart-item-count');
     const totalAmount = document.getElementById('total-amount');
     const totalItems = document.getElementById('total-items');
     
-    if (!cartItemsContainer) return;
+    if (!cartItemsContainer) {
+        console.error('cartItemsContainer not found!');
+        return;
+    }
     
     // Fix cart data - ensure all items have correct totalPrice
-    if (cart && cart.length > 0) {
-        console.log('Fixing cart data...');
-        cart.forEach(item => {
-            console.log('Before fix - Item:', item.name, 'totalPrice:', item.totalPrice, 'type:', typeof item.totalPrice);
+    if (window.cart && window.cart.length > 0) {
+        window.cart.forEach(item => {
             if (item.totalPrice === 0 || isNaN(item.totalPrice) || !item.totalPrice) {
                 item.totalPrice = item.price * item.quantity;
-                console.log('Fixed item totalPrice:', item.totalPrice);
             }
         });
         saveCartToStorage();
-        console.log('Cart after fixing:', cart);
+    } else {
+        // If cart is empty, ensure localStorage is also cleared
+        localStorage.removeItem('pos_cart');
     }
     
     // Clear container
     cartItemsContainer.innerHTML = '';
     
-    if (cart.length === 0) {
+    if (window.cart.length === 0) {
         cartItemsContainer.innerHTML = `
-            <div class="cart-empty">
-                <i class="fas fa-shopping-cart"></i>
-                <h4>Your cart is empty</h4>
-                <p>Add items from the menu to get started</p>
+            <div class="cart-empty" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <i class="fas fa-shopping-cart" style="font-size: 32px; color: #94a3b8;"></i>
+                </div>
+                <h4 style="font-size: 18px; font-weight: 600; color: #475569; margin-bottom: 8px;">Your cart is empty</h4>
+                <p style="font-size: 14px; color: #94a3b8; line-height: 1.5;">Add items from the menu to get started</p>
             </div>
         `;
         // Reset selected item
@@ -227,31 +234,33 @@ function updateCartDisplay() {
         updateSelectedQuantity();
     } else {
         // Add each item to cart display
-        cart.forEach((item, index) => {
+        window.cart.forEach((item, index) => {
             const cartItem = document.createElement('div');
             cartItem.className = 'cart-item';
             cartItem.onclick = () => selectCartItem(cartItem);
             cartItem.dataset.itemId = item.id;
             
             cartItem.innerHTML = `
-                <div class="item-details" data-item-id="${item.id}" style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div class="item-details" data-item-id="${item.id}" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #20bf55, #01baef);"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="flex: 1;">
-                            <div class="item-name" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 4px;">${item.name}</div>
-                            <div class="item-price" style="font-size: 12px; color: #64748b;">PKR ${item.price.toFixed(2)}</div>
+                            <div class="item-name" style="font-weight: 700; color: #1e293b; font-size: 15px; margin-bottom: 6px; letter-spacing: 0.3px;">${item.name}</div>
+                            <div class="item-price" style="font-size: 13px; color: #64748b; font-weight: 500;">PKR ${item.price.toFixed(2)}</div>
+                            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">Total: PKR ${item.totalPrice.toFixed(2)}</div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <button onclick="event.stopPropagation(); updateItemQuantity('${item.id}', ${item.quantity - 1})" 
-                                    style="width: 22px; height: 22px; border: 1px solid #d1d5db; background: #f8fafc; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; font-size: 12px;">
+                                    style="width: 28px; height: 28px; border: 1px solid #d1d5db; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 -
                             </button>
-                            <span style="min-width: 25px; text-align: center; font-weight: 600; color: #1e293b; font-size: 13px;">${item.quantity}</span>
+                            <span style="min-width: 35px; text-align: center; font-weight: 700; color: #1e293b; font-size: 15px; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0;">${item.quantity}</span>
                             <button onclick="event.stopPropagation(); updateItemQuantity('${item.id}', ${item.quantity + 1})" 
-                                    style="width: 22px; height: 22px; border: 1px solid #d1d5db; background: #f8fafc; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; font-size: 12px;">
+                                    style="width: 28px; height: 28px; border: 1px solid #d1d5db; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 +
                             </button>
                             <button onclick="event.stopPropagation(); removeFromCart('${item.id}')" 
-                                    style="width: 22px; height: 22px; border: 1px solid #ef4444; background: #ef4444; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-left: 4px; font-size: 12px;">
+                                    style="width: 28px; height: 28px; border: 1px solid #ef4444; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-left: 6px; font-size: 14px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(239,68,68,0.3);">
                                 ×
                             </button>
                         </div>
@@ -263,15 +272,13 @@ function updateCartDisplay() {
         });
     }
     
-    // Update counters
+    // Update counters - use total quantity of all items
     if (cartItemCount) {
-        cartItemCount.textContent = cart.length;
+        cartItemCount.textContent = getCartTotalQuantity();
     }
     
     // Update payment display with multiple attempts
     updatePaymentDisplay();
-    
-
     
     // Update selected quantity display
     updateSelectedQuantity();
@@ -279,44 +286,135 @@ function updateCartDisplay() {
 
 // Clear cart
 function clearCart() {
-    cart = [];
-    selectedItemIndex = -1;
-    saveCartToStorage();
-    updateCartDisplay();
-    showToast('Cart cleared', 'success');
+    // Show confirmation dialog
+    if (window.cart && window.cart.length > 0) {
+        if (confirm('Are you sure you want to clear all items from the cart?')) {
+            // Clear the cart array completely
+            window.cart = [];
+            window.selectedItemIndex = -1;
+            
+            // Clear the global selected cart item
+            window.selectedCartItem = null;
+            
+            // Clear localStorage completely
+            localStorage.removeItem('pos_cart');
+            
+            // Force clear the display immediately
+            const cartItemsContainer = document.getElementById('cart-items');
+            if (cartItemsContainer) {
+                cartItemsContainer.innerHTML = `
+                    <div class="cart-empty" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            <i class="fas fa-shopping-cart" style="font-size: 32px; color: #94a3b8;"></i>
+                        </div>
+                        <h4 style="font-size: 18px; font-weight: 600; color: #475569; margin-bottom: 8px;">Your cart is empty</h4>
+                        <p style="font-size: 14px; color: #94a3b8; line-height: 1.5;">Add items from the menu to get started</p>
+                    </div>
+                `;
+            }
+            
+            // Update counters
+            const cartItemCount = document.getElementById('cart-item-count');
+            if (cartItemCount) {
+                cartItemCount.textContent = getCartTotalQuantity();
+            }
+            
+            // Update payment display with correct item count
+            const totalAmount = document.getElementById('total-amount');
+            if (totalAmount) {
+                totalAmount.innerHTML = `
+                    <div style="text-align: center; padding: 12px; background: #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-weight: 600; color: #1e293b; font-size: 16px;">
+                        Payment PKR 0.00 <span style="color: #64748b; font-size: 14px; font-weight: 500; margin-left: 10px;">Item(s): 0</span>
+                    </div>
+                `;
+            }
+            
+            // Update selected quantity display
+            const quantityDisplay = document.getElementById('selected-quantity');
+            if (quantityDisplay) {
+                quantityDisplay.textContent = '1';
+            }
+            
+            // Remove any selected cart items from UI
+            document.querySelectorAll('.cart-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Clear customer information
+            const customerNameInput = document.getElementById('customer-name');
+            const customerPostcodeInput = document.getElementById('customer-postcode');
+            
+            if (customerNameInput) {
+                customerNameInput.value = '';
+            }
+            if (customerPostcodeInput) {
+                customerPostcodeInput.value = '';
+            }
+            
+            // Close the modal if it's open
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                // Try to use closeModal function if available, otherwise just remove the modal
+                if (typeof closeModal === 'function') {
+                    closeModal(modal);
+                } else {
+                    modal.remove();
+                }
+            }
+            
+
+            
+            // Save the cleared cart to storage
+            saveCartToStorage();
+            
+            // Update the cart display
+            updateCartDisplay();
+            
+            // Show success message
+            showToast('All items cleared from cart', 'success');
+        }
+    } else {
+        showToast('Cart is already empty', 'info');
+    }
 }
 
 // Get cart total
 function getCartTotal() {
-    if (!Array.isArray(cart)) {
-        console.warn('Cart is not an array:', cart);
+    if (!Array.isArray(window.cart)) {
         return 0;
     }
-    console.log('getCartTotal called with cart:', cart);
-    const total = cart.reduce((total, item) => {
+    const total = window.cart.reduce((total, item) => {
         const itemPrice = parseFloat(item.totalPrice) || 0;
-        console.log(`Item: ${item.name}, totalPrice: ${item.totalPrice}, parsed: ${itemPrice}`);
         return total + itemPrice;
     }, 0);
-    console.log('getCartTotal returning:', total, 'type:', typeof total);
     // Ensure we return a number, not a string
     return parseFloat(total) || 0;
 }
 
-// Get cart item count
+// Get cart item count (number of unique items)
 function getCartItemCount() {
-    return cart.length;
+    return window.cart ? window.cart.length : 0;
+}
+
+// Get total quantity of all items
+function getCartTotalQuantity() {
+    if (!window.cart || !Array.isArray(window.cart)) {
+        return 0;
+    }
+    return window.cart.reduce((total, item) => {
+        return total + (parseInt(item.quantity) || 0);
+    }, 0);
 }
 
 // Get cart items
 function getCartItems() {
-    return cart.map(item => ({
+    return window.cart ? window.cart.map(item => ({
         id: item.id,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
         total_price: item.totalPrice
-    }));
+    })) : [];
 }
 
 // Get cart data for order processing
@@ -332,12 +430,20 @@ function getCartData() {
 
 // Save cart to localStorage
 function saveCartToStorage() {
-    localStorage.setItem('pos_cart', JSON.stringify(cart));
+    if (window.cart && window.cart.length > 0) {
+        localStorage.setItem('pos_cart', JSON.stringify(window.cart));
+    } else {
+        localStorage.removeItem('pos_cart');
+    }
+    
+    // Keep local reference in sync
+    cart = window.cart;
 }
 
 // Load cart from localStorage
 function loadCartFromStorage() {
     const savedCart = localStorage.getItem('pos_cart');
+    
     if (savedCart) {
         try {
             const parsedCart = JSON.parse(savedCart);
@@ -358,16 +464,20 @@ function loadCartFromStorage() {
                     return mappedItem;
                 });
             } else {
-                console.warn('Saved cart is not an array, resetting to empty cart');
                 cart = [];
             }
         } catch (e) {
-            console.error('Error loading cart from storage:', e);
             cart = [];
         }
     } else {
         cart = [];
     }
+    
+    // Keep global reference in sync
+    window.cart = cart;
+    
+    // Ensure local cart is also in sync
+    cart = window.cart;
 }
 
 // Show toast notification
@@ -408,33 +518,19 @@ function updatePaymentDisplay() {
         const total = getCartTotal();
         // Convert to number and handle any type issues
         const safeTotal = parseFloat(total) || 0;
-        console.log('Updating payment display:', { total, safeTotal, cartLength: cart.length, totalType: typeof total });
         
-        // Update payment display with payment info and item count
-        const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+        // Update payment display with payment info and item count on the same line
         totalAmount.innerHTML = `
             <div style="text-align: center; padding: 12px; background: #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-weight: 600; color: #1e293b; font-size: 16px;">
-                Payment PKR ${safeTotal.toFixed(2)}
-            </div>
-            <div style="text-align: center; padding: 8px; color: #64748b; font-size: 14px; font-weight: 500;">
-                Item(s): ${totalQuantity}
+                Payment PKR ${safeTotal.toFixed(2)} <span style="color: #64748b; font-size: 14px; font-weight: 500; margin-left: 10px;">Item(s): ${getCartTotalQuantity()}</span>
             </div>
         `;
         
-        // Double-check the update worked
-        setTimeout(() => {
-            if (!totalAmount.innerHTML.includes(`Payment PKR ${safeTotal.toFixed(2)}`)) {
-                console.log('Payment display not updated correctly, retrying...');
-                totalAmount.innerHTML = `
-                    <div style="text-align: center; padding: 12px; background: #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-weight: 600; color: #1e293b; font-size: 16px;">
-                        Payment PKR ${safeTotal.toFixed(2)}
-                    </div>
-                    <div style="text-align: center; padding: 8px; color: #64748b; font-size: 14px; font-weight: 500;">
-                        Item(s): ${totalQuantity}
-                    </div>
-                `;
-            }
-        }, 50);
+        // Also update the cart item count in the header
+        const cartItemCount = document.getElementById('cart-item-count');
+        if (cartItemCount) {
+            cartItemCount.textContent = getCartTotalQuantity();
+        }
     } else {
         console.error('totalAmount element not found!');
     }
@@ -445,8 +541,13 @@ function updateSelectedQuantity() {
     const quantityDisplay = document.getElementById('selected-quantity');
     // Use selectedCartItem from the global scope
     if (window.selectedCartItem) {
-        const quantity = window.selectedCartItem.querySelector('.quantity-display').textContent;
-        quantityDisplay.textContent = quantity;
+        // Find the quantity span within the selected cart item
+        const quantitySpan = window.selectedCartItem.querySelector('span');
+        if (quantitySpan) {
+            quantityDisplay.textContent = quantitySpan.textContent;
+        } else {
+            quantityDisplay.textContent = '1';
+        }
     } else {
         quantityDisplay.textContent = '1';
     }
@@ -803,11 +904,8 @@ function completeOrder() {
             // Show success modal with invoice
             showOrderSuccessModal(data.order);
             
-            // Clear cart
-            clearCart();
-            
-            // Generate new order number
-            generateNewOrderNumber();
+            // Note: Cart will be cleared when user clicks "Start New Order"
+            // Don't clear cart here to allow user to review order before starting new order
             
         } else {
             showToast('Error: ' + data.message, 'error');
@@ -820,16 +918,41 @@ function completeOrder() {
 }
 
 function generateNewOrderNumber() {
-    // Generate new order number for next order
-    const timestamp = new Date().getTime();
-    const random = Math.floor(Math.random() * 1000);
-    const newOrderNumber = `ORD${timestamp}${random}`;
-    
-    // Update order number display if it exists
-    const orderNumberElement = document.querySelector('.order-info span');
-    if (orderNumberElement) {
-        orderNumberElement.textContent = `Order No: ${newOrderNumber}`;
-    }
+    // Call API to get the next sequential order number
+    fetch('api/generate_order_number.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.order_number) {
+                // Update order number display if it exists
+                const orderNumberElement = document.querySelector('.order-info span');
+                if (orderNumberElement) {
+                    orderNumberElement.textContent = `Order No: ${data.order_number}`;
+                }
+            } else {
+                console.error('Failed to generate order number:', data.error);
+                // Fallback to timestamp-based generation
+                const timestamp = new Date().getTime();
+                const random = Math.floor(Math.random() * 1000);
+                const newOrderNumber = `ORD${timestamp}${random}`;
+                
+                const orderNumberElement = document.querySelector('.order-info span');
+                if (orderNumberElement) {
+                    orderNumberElement.textContent = `Order No: ${newOrderNumber}`;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error generating order number:', error);
+            // Fallback to timestamp-based generation
+            const timestamp = new Date().getTime();
+            const random = Math.floor(Math.random() * 1000);
+            const newOrderNumber = `ORD${timestamp}${random}`;
+            
+            const orderNumberElement = document.querySelector('.order-info span');
+            if (orderNumberElement) {
+                orderNumberElement.textContent = `Order No: ${newOrderNumber}`;
+            }
+        });
 }
 
 function showOrderSuccessModal(order) {
@@ -857,9 +980,9 @@ function showOrderSuccessModal(order) {
                         style="padding: 12px 24px; border: none; border-radius: 8px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600;">
                     <i class="fas fa-print"></i> Print Invoice
                 </button>
-                <button class="btn btn-secondary" onclick="closeModal(document.querySelector('.modal'))" 
-                        style="padding: 12px 24px; border: none; border-radius: 8px; background: #64748b; color: white; cursor: pointer;">
-                    <i class="fas fa-times"></i> Close
+                <button class="btn btn-secondary" onclick="startNewOrder()" 
+                        style="padding: 12px 24px; border: none; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-plus"></i> Start New Order
                 </button>
             </div>
         </div>
@@ -873,12 +996,112 @@ function printInvoice(orderId) {
     window.open(`print_invoice.php?order_id=${orderId}`, '_blank');
 }
 
+// Simple modal close function
+function closeModal(modal) {
+    if (modal && modal.parentNode) {
+        modal.remove();
+    }
+}
+
+// Start new order function
+function startNewOrder() {
+    // Show confirmation dialog if cart has items
+    if (window.cart && window.cart.length > 0) {
+        if (!confirm('Are you sure you want to start a new order? This will clear the current cart.')) {
+            return;
+        }
+    }
+    
+    // Use the same clearing logic as clearCart function
+    // Clear the cart array completely
+    window.cart = [];
+    window.selectedItemIndex = -1;
+    
+    // Clear the global selected cart item
+    window.selectedCartItem = null;
+    
+    // Clear localStorage completely
+    localStorage.removeItem('pos_cart');
+    
+    // Force clear the display immediately
+    const cartItemsContainer = document.getElementById('cart-items');
+    if (cartItemsContainer) {
+        cartItemsContainer.innerHTML = `
+            <div class="cart-empty" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <i class="fas fa-shopping-cart" style="font-size: 32px; color: #94a3b8;"></i>
+                </div>
+                <h4 style="font-size: 18px; font-weight: 600; color: #475569; margin-bottom: 8px;">Your cart is empty</h4>
+                <p style="font-size: 14px; color: #94a3b8; line-height: 1.5;">Add items from the menu to get started</p>
+            </div>
+        `;
+    }
+    
+    // Update counters
+    const cartItemCount = document.getElementById('cart-item-count');
+    if (cartItemCount) {
+        cartItemCount.textContent = getCartTotalQuantity();
+    }
+    
+    // Update payment display with correct item count
+    const totalAmount = document.getElementById('total-amount');
+    if (totalAmount) {
+        totalAmount.innerHTML = `
+            <div style="text-align: center; padding: 12px; background: #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-weight: 600; color: #1e293b; font-size: 16px;">
+                Payment PKR 0.00 <span style="color: #64748b; font-size: 14px; font-weight: 500; margin-left: 10px;">Item(s): 0</span>
+            </div>
+        `;
+    }
+    
+    // Update selected quantity display
+    const quantityDisplay = document.getElementById('selected-quantity');
+    if (quantityDisplay) {
+        quantityDisplay.textContent = '1';
+    }
+    
+    // Remove any selected cart items from UI
+    document.querySelectorAll('.cart-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Clear customer information
+    const customerNameInput = document.getElementById('customer-name');
+    const customerPostcodeInput = document.getElementById('customer-postcode');
+    
+    if (customerNameInput) {
+        customerNameInput.value = '';
+    }
+    if (customerPostcodeInput) {
+        customerPostcodeInput.value = '';
+    }
+    
+    // Close the modal if it's open
+    const modal = document.querySelector('.modal');
+    if (modal) {
+        // Try to use closeModal function if available, otherwise just remove the modal
+        if (typeof closeModal === 'function') {
+            closeModal(modal);
+        } else {
+            modal.remove();
+        }
+    }
+    
+
+    
+    // Show success message
+    showToast('New order started! Cart cleared.', 'success');
+    
+    // Generate new order number
+    generateNewOrderNumber();
+}
+
 // Export all functions for global access
 window.addToCart = addToCart;
 window.removeFromCart = removeFromCart;
 window.updateItemQuantity = updateItemQuantity;
 window.getCartItems = getCartItems;
 window.getCartTotal = getCartTotal;
+window.getCartTotalQuantity = getCartTotalQuantity;
 window.clearCart = clearCart;
 window.selectCartItem = selectCartItem;
 window.increaseQuantity = increaseQuantity;
@@ -891,4 +1114,6 @@ window.showToast = showToast;
 window.showPaymentModal = showPaymentModal;
 window.completeOrder = completeOrder;
 window.printInvoice = printInvoice;
-window.showOrderSuccessModal = showOrderSuccessModal; 
+window.showOrderSuccessModal = showOrderSuccessModal;
+window.startNewOrder = startNewOrder;
+window.closeModal = closeModal; 

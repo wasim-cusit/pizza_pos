@@ -8,116 +8,10 @@ let currentCategoryId = 1;
 let currentOrderNumber = '';
 let selectedCartItem = null; // Global variable for selected cart item
 
-// Manually test each category click
-function testIndividualCategories() {
-    console.log('=== Testing Individual Category Clicks ===');
-    const categories = document.querySelectorAll('.category-card');
-    
-    categories.forEach((category, index) => {
-        setTimeout(() => {
-            const categoryId = category.dataset.categoryId;
-            const categoryName = category.querySelector('.category-name').textContent;
-            
-            console.log(`Testing click on: ${categoryName} (ID: ${categoryId})`);
-            
-            // Simulate click
-            category.click();
-            
-            // Check if items loaded after 1 second
-            setTimeout(() => {
-                const itemsGrid = document.getElementById('items-grid');
-                const itemCards = itemsGrid.querySelectorAll('.item-card');
-                console.log(`  - Items loaded for ${categoryName}: ${itemCards.length} items`);
-                
-                if (itemCards.length === 0) {
-                    console.warn(`  - WARNING: No items loaded for ${categoryName}`);
-                }
-            }, 1000);
-        }, index * 2000); // Test each category with 2 second delay
-    });
-}
 
-// Check and fix category cards
-function checkCategoryCards() {
-    console.log('=== Checking Category Cards ===');
-    const categories = document.querySelectorAll('.category-card');
-    
-    categories.forEach((category, index) => {
-        const categoryId = category.dataset.categoryId;
-        const categoryName = category.querySelector('.category-name').textContent;
-        
-        console.log(`Category ${index + 1}: ${categoryName} (ID: ${categoryId})`);
-        
-        // Check if category has proper attributes
-        if (!categoryId) {
-            console.error(`Category ${index + 1} missing category ID!`);
-        }
-        
-        // Check if category is clickable
-        const computedStyle = window.getComputedStyle(category);
-        const pointerEvents = computedStyle.pointerEvents;
-        const cursor = computedStyle.cursor;
-        
-        console.log(`  - Pointer events: ${pointerEvents}`);
-        console.log(`  - Cursor: ${cursor}`);
-        console.log(`  - Z-index: ${computedStyle.zIndex}`);
-        
-        // Fix any issues
-        if (pointerEvents === 'none') {
-            console.log(`  - Fixing pointer events for ${categoryName}`);
-            category.style.pointerEvents = 'auto';
-        }
-        
-        // Add click handler directly if needed
-        if (!category.hasAttribute('data-click-handler-added')) {
-            category.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log(`Direct click on ${categoryName} (ID: ${categoryId})`);
-                loadItems(categoryId);
-            });
-            category.setAttribute('data-click-handler-added', 'true');
-        }
-    });
-}
 
-// Test category loading function
-function testCategoryLoading() {
-    console.log('=== Testing Category Loading ===');
-    
-    // Test each category
-    const categories = document.querySelectorAll('.category-card');
-    categories.forEach((category, index) => {
-        const categoryId = category.dataset.categoryId;
-        const categoryName = category.querySelector('.category-name').textContent;
-        
-        console.log(`Testing category ${index + 1}: ${categoryName} (ID: ${categoryId})`);
-        
-        // Simulate click
-        setTimeout(() => {
-            console.log(`Clicking category: ${categoryName}`);
-            category.click();
-        }, index * 1000); // Test each category with 1 second delay
-    });
-}
-
-// Debug function to test all categories
-function testAllCategories() {
-    console.log('Testing all categories...');
-    const categories = document.querySelectorAll('.category-card');
-    console.log('Found', categories.length, 'categories');
-    
-    categories.forEach((category, index) => {
-        const categoryId = category.dataset.categoryId;
-        const categoryName = category.querySelector('.category-name').textContent;
-        console.log(`Category ${index + 1}: ID=${categoryId}, Name="${categoryName}"`);
-    });
-}
-
-// Call debug function on page load
+// Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('POS System initializing...');
-    
     // Get current order number from header
     const orderInfo = document.querySelector('.order-info span');
     if (orderInfo && orderInfo.textContent.includes('Order No:')) {
@@ -127,16 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
     setupEventListeners();
     
-    // Check and fix category cards
-    setTimeout(() => {
-        checkCategoryCards();
-    }, 500);
-    
-    // Test all categories
-    setTimeout(() => {
-        testAllCategories();
-    }, 1000);
-    
     // Load initial data
     loadInitialData();
     
@@ -145,33 +29,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize cart
     updateCartDisplay();
-    
-    // Debug: Check if items are loaded after a delay
-    setTimeout(() => {
-        const itemsGrid = document.getElementById('items-grid');
-        if (itemsGrid) {
-            const itemCards = itemsGrid.querySelectorAll('.item-card');
-            console.log('Found', itemCards.length, 'item cards in grid');
-            
-            if (itemCards.length === 0) {
-                console.log('No items loaded, trying fallback...');
-                // Try to load items from the first category
-                const firstCategory = document.querySelector('.category-card');
-                if (firstCategory) {
-                    const categoryId = firstCategory.dataset.categoryId;
-                    console.log('Trying to load category:', categoryId);
-                    loadItems(categoryId);
-                } else {
-                    console.log('No categories found, loading default items');
-                    loadItems(1);
-                }
-            } else {
-                console.log('Items loaded successfully!');
-            }
-        } else {
-            console.error('Items grid not found in DOM');
-        }
-    }, 2000); // Increased delay to ensure everything is loaded
 });
 
 // Setup event listeners
@@ -183,12 +40,9 @@ function setupEventListeners() {
             e.stopPropagation();
             
             const categoryId = this.dataset.categoryId;
-            console.log('Category clicked:', categoryId, this.textContent.trim());
             
             if (categoryId) {
                 loadItems(categoryId);
-            } else {
-                console.error('No category ID found for:', this);
             }
         });
     });
@@ -213,7 +67,6 @@ function setupEventListeners() {
         if (e.target.closest('.category-card')) {
             const card = e.target.closest('.category-card');
             const categoryId = card.dataset.categoryId;
-            console.log('Category clicked via delegation:', categoryId);
             
             if (categoryId) {
                 loadItems(categoryId);
@@ -228,10 +81,8 @@ function loadInitialData() {
     const firstCategory = document.querySelector('.category-card');
     if (firstCategory) {
         currentCategoryId = firstCategory.dataset.categoryId;
-        console.log('Loading initial category:', currentCategoryId);
         loadItems(currentCategoryId);
     } else {
-        console.log('No category found, loading default items');
         // If no categories found, try to load items directly
         loadItems(1);
     }
@@ -239,7 +90,6 @@ function loadInitialData() {
 
 // Load items for a specific category
 function loadItems(categoryId) {
-    console.log('Loading items for category:', categoryId);
     currentCategoryId = categoryId;
     
     // Update active category
@@ -250,9 +100,6 @@ function loadItems(categoryId) {
     const activeCard = document.querySelector(`[data-category-id="${categoryId}"]`);
     if (activeCard) {
         activeCard.classList.add('active');
-        console.log('Active category updated:', activeCard.textContent.trim());
-    } else {
-        console.error('Category card not found for ID:', categoryId);
     }
     
     // Show loading state
@@ -263,29 +110,22 @@ function loadItems(categoryId) {
     
     // Try to fetch items via AJAX first
     const apiUrl = `api/get_items.php?category_id=${categoryId}`;
-    console.log('Fetching from:', apiUrl);
     
     fetch(apiUrl)
         .then(response => {
-            console.log('Response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('API Response:', data); // Debug log
             if (data.success && data.items) {
-                console.log('Displaying', data.items.length, 'items for category', categoryId);
                 displayItems(data.items);
             } else {
-                console.error('API returned error:', data.message);
                 throw new Error(data.message || 'Error loading items');
             }
         })
         .catch(error => {
-            console.error('AJAX Error:', error);
-            console.log('Trying fallback method...');
             // Fallback: Load items from the page data
             loadItemsFromPageData(categoryId);
         });
@@ -331,11 +171,8 @@ function loadItemsFromPageData(categoryId) {
 function displayItems(items) {
     const itemsGrid = document.getElementById('items-grid');
     if (!itemsGrid) {
-        console.error('Items grid not found!');
         return;
     }
-    
-    console.log('Displaying items:', items);
     
     if (!items || items.length === 0) {
         itemsGrid.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No items found in this category.</div>';
@@ -359,7 +196,13 @@ function displayItems(items) {
     }).join('');
     
     itemsGrid.innerHTML = itemsHTML;
-    console.log('Items grid updated with', items.length, 'items');
+    
+    // Force update payment display after items are loaded
+    setTimeout(() => {
+        if (typeof updatePaymentDisplay === 'function') {
+            updatePaymentDisplay();
+        }
+    }, 100);
 }
 
 // Get appropriate icon for item
@@ -408,7 +251,7 @@ function searchItems(query) {
             }
         })
         .catch(error => {
-            console.error('Search error:', error);
+            // Handle search error silently
         });
 }
 
@@ -994,9 +837,9 @@ function showOrderSuccessModal(order) {
                         style="padding: 12px 24px; border: none; border-radius: 8px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600;">
                     <i class="fas fa-print"></i> Print Invoice
                 </button>
-                <button class="btn btn-secondary" onclick="closeModal(document.querySelector('.modal'))" 
-                        style="padding: 12px 24px; border: none; border-radius: 8px; background: #64748b; color: white; cursor: pointer;">
-                    <i class="fas fa-times"></i> Start New Order
+                <button class="btn btn-secondary" onclick="startNewOrder()" 
+                        style="padding: 12px 24px; border: none; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-plus"></i> Start New Order
                 </button>
             </div>
             
@@ -1083,18 +926,141 @@ function clearCart() {
     showToast('Cart cleared', 'success');
 }
 
+// Start new order function
+function startNewOrder() {
+    // Show confirmation dialog if cart has items
+    if (window.cart && window.cart.length > 0) {
+        if (!confirm('Are you sure you want to start a new order? This will clear the current cart.')) {
+            return;
+        }
+    }
+    
+    // Use the same clearing logic as clearCart function
+    // Clear the cart array completely
+    window.cart = [];
+    window.selectedItemIndex = -1;
+    
+    // Clear the global selected cart item
+    window.selectedCartItem = null;
+    
+    // Clear localStorage completely
+    localStorage.removeItem('pos_cart');
+    
+    // Force clear the display immediately
+    const cartItemsContainer = document.getElementById('cart-items');
+    if (cartItemsContainer) {
+        cartItemsContainer.innerHTML = `
+            <div class="cart-empty" style="text-align: center; padding: 40px 20px; color: #64748b;">
+                <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <i class="fas fa-shopping-cart" style="font-size: 32px; color: #94a3b8;"></i>
+                </div>
+                <h4 style="font-size: 18px; font-weight: 600; color: #475569; margin-bottom: 8px;">Your cart is empty</h4>
+                <p style="font-size: 14px; color: #94a3b8; line-height: 1.5;">Add items from the menu to get started</p>
+            </div>
+        `;
+    }
+    
+    // Update counters
+    const cartItemCount = document.getElementById('cart-item-count');
+    if (cartItemCount) {
+        cartItemCount.textContent = getCartTotalQuantity();
+    }
+    
+    // Update payment display with correct item count
+    const totalAmount = document.getElementById('total-amount');
+    if (totalAmount) {
+        totalAmount.innerHTML = `
+            <div style="text-align: center; padding: 12px; background: #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-weight: 600; color: #1e293b; font-size: 16px;">
+                Payment PKR 0.00 <span style="color: #64748b; font-size: 14px; font-weight: 500; margin-left: 10px;">Item(s): 0</span>
+            </div>
+        `;
+    }
+    
+    // Update selected quantity display
+    const quantityDisplay = document.getElementById('selected-quantity');
+    if (quantityDisplay) {
+        quantityDisplay.textContent = '1';
+    }
+    
+    // Remove any selected cart items from UI
+    document.querySelectorAll('.cart-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Clear customer information
+    const customerNameInput = document.getElementById('customer-name');
+    const customerPostcodeInput = document.getElementById('customer-postcode');
+    
+    if (customerNameInput) {
+        customerNameInput.value = '';
+    }
+    if (customerPostcodeInput) {
+        customerPostcodeInput.value = '';
+    }
+    
+    // Close the modal if it's open
+    const modal = document.querySelector('.modal');
+    if (modal) {
+        // Try to use closeModal function if available, otherwise just remove the modal
+        if (typeof closeModal === 'function') {
+            closeModal(modal);
+        } else {
+            modal.remove();
+        }
+    }
+    
+
+    
+    // Save the cleared cart to storage
+    saveCartToStorage();
+    
+    // Update the cart display
+    updateCartDisplay();
+    
+    // Show success message
+    showToast('New order started! Cart cleared.', 'success');
+    
+    // Generate new order number
+    generateNewOrderNumber();
+}
+
 // Generate new order number
 function generateNewOrderNumber() {
-    // Generate new order number for next order
-    const timestamp = new Date().getTime();
-    const random = Math.floor(Math.random() * 1000);
-    const newOrderNumber = `ORD${timestamp}${random}`;
-    
-    // Update order number display if it exists
-    const orderNumberElement = document.querySelector('.order-info span');
-    if (orderNumberElement) {
-        orderNumberElement.textContent = `Order No: ${newOrderNumber}`;
-    }
+    // Call API to get the next sequential order number
+    fetch('api/generate_order_number.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.order_number) {
+                // Update order number display if it exists
+                const orderNumberElement = document.querySelector('.order-info span');
+                if (orderNumberElement) {
+                    orderNumberElement.textContent = `Order No: ${data.order_number}`;
+                }
+            } else {
+                console.error('Failed to generate order number:', data.error);
+                // Fallback to timestamp-based generation
+                const timestamp = new Date().getTime();
+                const random = Math.floor(Math.random() * 1000);
+                const newOrderNumber = `ORD${timestamp}${random}`;
+                
+                const orderNumberElement = document.querySelector('.order-info span');
+                if (orderNumberElement) {
+                    orderNumberElement.textContent = `Order No: ${newOrderNumber}`;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error generating order number:', error);
+            // Fallback to timestamp-based generation
+            const timestamp = new Date().getTime();
+            const random = Math.floor(Math.random() * 1000);
+            const newOrderNumber = `ORD${timestamp}${random}`;
+            
+            const orderNumberElement = document.querySelector('.order-info span');
+            if (orderNumberElement) {
+                orderNumberElement.textContent = `Order No: ${newOrderNumber}`;
+            }
+        });
 }
 
 // Print receipt
@@ -1617,9 +1583,7 @@ function printZebra(zpl, copies) {
         // Simulate print success
         showToast(`Print job completed! ${copies} copy(ies) sent to Zebra printer.`, 'success');
         
-        // Log the ZPL command for debugging (in real implementation, this would be sent to printer)
-        console.log('ZPL Command sent to printer:', zpl);
-        console.log('Printer IP:', ip, 'Port:', port, 'Copies:', copies);
+
     }, 2000);
 }
 
@@ -2133,6 +2097,8 @@ window.processOrderWithType = function() {
     showPaymentModal();
 };
 
+window.startNewOrder = startNewOrder;
+
 window.showHeldOrdersModal = function(heldOrders) {
     const ordersList = heldOrders.map((order, index) => `
         <div style="border: 1px solid #e0e0e0; padding: 10px; margin: 10px 0; border-radius: 8px;">
@@ -2334,10 +2300,7 @@ window.applyDiscount = applyDiscount;
 window.applyDiscountPercent = applyDiscountPercent;
 window.applyCustomDiscount = applyCustomDiscount;
 window.deleteSelectedItem = deleteSelectedItem;
-window.updateSelectedQuantity = updateSelectedQuantity;
-window.testCategoryLoading = testCategoryLoading;
-window.checkCategoryCards = checkCategoryCards;
-window.testIndividualCategories = testIndividualCategories; 
+window.updateSelectedQuantity = updateSelectedQuantity; 
 
 // Export navigation functions
 window.goHome = goHome;

@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Fetch order from database
     $orderId = $_GET['order_id'];
     
-    $query = "SELECT o.*, u.name as user_name, c.name as customer_name, c.phone as customer_phone
+    $query = "SELECT o.*, u.name as user_name, c.name as customer_name, c.contact as customer_phone
               FROM orders o 
               LEFT JOIN users u ON o.user_id = u.id 
               LEFT JOIN customers c ON o.customer_id = c.id 
@@ -304,9 +304,9 @@ if (!$orderData) {
     <div class="receipt">
         <!-- Header -->
         <div class="header">
-            <h1>🍕 Fast Food POS</h1>
+            <h1>🍕 <?php echo htmlspecialchars(getSetting('company_name') ?: 'Fast Food POS'); ?></h1>
             <p>Delicious Food, Great Service</p>
-            <p>www.fastfoodpos.com</p>
+            <p><?php echo htmlspecialchars(getSetting('company_website') ?: 'www.fastfoodpos.com'); ?></p>
         </div>
         
         <!-- Order Information -->
@@ -389,10 +389,16 @@ if (!$orderData) {
         
         <!-- Footer -->
         <div class="footer">
-            <p>Thank you for your order!</p>
+            <p><?php echo htmlspecialchars(getSetting('receipt_footer') ?: 'Thank you for your order!'); ?></p>
             <p>Visit us again soon</p>
-            <p>🍕 Fast Food POS System</p>
-            <p>www.fastfoodpos.com</p>
+            <p>🍕 <?php echo htmlspecialchars(getSetting('company_name') ?: 'Fast Food POS System'); ?></p>
+            <p><?php echo htmlspecialchars(getSetting('company_website') ?: 'www.fastfoodpos.com'); ?></p>
+            <?php if (getSetting('company_phone')): ?>
+            <p>📞 <?php echo htmlspecialchars(getSetting('company_phone')); ?></p>
+            <?php endif; ?>
+            <?php if (getSetting('company_address')): ?>
+            <p>📍 <?php echo htmlspecialchars(getSetting('company_address')); ?></p>
+            <?php endif; ?>
         </div>
     </div>
     

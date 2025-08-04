@@ -152,7 +152,7 @@ try {
         $db->commit();
         
         // Get the complete order for response
-        $query = "SELECT o.*, u.name as user_name, u.username, c.name as customer_name, c.phone as customer_phone
+        $query = "SELECT o.*, u.name as user_name, u.username, c.name as customer_name, c.contact as customer_phone
                   FROM orders o 
                   LEFT JOIN users u ON o.user_id = u.id 
                   LEFT JOIN customers c ON o.customer_id = c.id 

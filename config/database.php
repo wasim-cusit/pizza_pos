@@ -48,12 +48,23 @@ function generateOrderNumber() {
     
     $prefix = 'ORD';
     $date = date('Ymd');
-    $query = "SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURDATE()";
+    
+    // Get the highest order number for today to ensure proper sequencing
+    $query = "SELECT order_number FROM orders WHERE DATE(created_at) = CURDATE() ORDER BY order_number DESC LIMIT 1";
     $stmt = $db->prepare($query);
     $stmt->execute();
     $result = $stmt->fetch();
     
-    $count = $result['count'] + 1;
+    if ($result) {
+        // Extract the numeric part from the existing order number
+        $existingNumber = $result['order_number'];
+        $numericPart = substr($existingNumber, -4); // Get last 4 digits
+        $count = intval($numericPart) + 1;
+    } else {
+        // No orders today, start with 1
+        $count = 1;
+    }
+    
     return $prefix . $date . str_pad($count, 4, '0', STR_PAD_LEFT);
 }
 
