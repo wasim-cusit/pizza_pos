@@ -97,29 +97,47 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
     <!-- Main Container -->
     <div class="main-container">
         <!-- Left Sidebar - Cart -->
-        <div class="cart-sidebar">
-            <div class="cart-header">
-                <h3>🛒 Order Cart</h3>
-                <p>Items: <span id="cart-item-count">0</span></p>
+        <div class="cart-sidebar" style="background: white; border-right: 1px solid #e2e8f0; width: 350px; display: flex; flex-direction: column;">
+            <div class="cart-header" style="background: #20bf55; color: white; padding: 15px; border-radius: 0;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🛒 Order Cart</h3>
+                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">Items: <span id="cart-item-count">0</span></p>
             </div>
             
-            <div class="cart-items" id="cart-items">
+            <div class="cart-items" id="cart-items" style="flex: 1; overflow-y: auto; padding: 10px;">
                 <!-- Cart items will be loaded here -->
             </div>
             
-            <div class="cart-controls">
-                <div class="control-labels">
-                    <span>PRICE</span>
-                    <span>DISCOUNT</span>
-                    <span>QUANTITY</span>
-                    <span>DELETE</span>
+            <!-- Customer Section -->
+            <div class="customer-section" style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="customer-input" id="customer-name" placeholder="Customer" 
+                           style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; background: white;">
+                    <input type="text" class="customer-input" id="customer-postcode" placeholder="Postcode" 
+                           style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; background: white;">
                 </div>
-                <div class="control-buttons">
-                    <button class="control-btn" onclick="decreaseQuantity()">-</button>
-                    <button class="control-btn" onclick="applyDiscount()">%</button>
-                    <div class="quantity-display" id="selected-quantity">1</div>
-                    <button class="control-btn delete" onclick="deleteSelectedItem()">×</button>
+            </div>
+            
+            <!-- Select Button Section -->
+            <div style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                <button class="select-btn" onclick="selectCustomer()" 
+                        style="width: 100%; padding: 10px; background: #20bf55; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500;">
+                    <i class="fas fa-user"></i> Select
+                </button>
+            </div>
+            
+            <!-- Payment Section -->
+            <div class="payment-section" style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                <div class="payment-amount" id="total-amount">
+                    <!-- Payment display will be updated by JavaScript -->
                 </div>
+            </div>
+            
+            <!-- Complete Order Button -->
+            <div style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                <button onclick="showPaymentModal()" 
+                        style="width: 100%; padding: 12px; border: none; border-radius: 6px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600; font-size: 14px;">
+                    <i class="fas fa-check-circle"></i> Complete Order
+                </button>
             </div>
         </div>
 
@@ -209,24 +227,10 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
 
             <!-- Bottom Section -->
             <div class="bottom-section">
-                <div class="customer-section">
-                    <input type="text" class="customer-input" id="customer-name" placeholder="Customer">
-                    <input type="text" class="customer-input" id="customer-postcode" placeholder="Postcode">
-                    <button class="select-btn" onclick="selectCustomer()">
-                        <i class="fas fa-user"></i> Select
-                    </button>
-                </div>
-                
-                <div class="payment-section">
-                    <div class="payment-amount" id="total-amount">
-                        Payment PKR 0.00
-                    </div>
-                    <div class="items-count" id="total-items">
-                        Item(s): 0
-                    </div>
-                </div>
-                
                 <div class="action-buttons">
+                    <!-- <button class="action-btn" onclick="showPaymentModal()" style="background: linear-gradient(135deg, #20bf55, #01baef); color: white; font-weight: 600;">
+                        <i class="fas fa-check-circle"></i> Complete Order
+                    </button> -->
                     <button class="action-btn" onclick="showDressings()">
                         <i class="fas fa-bottle-water"></i> Dressings
                     </button>
@@ -267,6 +271,9 @@ error_log("Loaded " . count($items) . " items for category " . $defaultCategoryI
 
         <!-- Right Sidebar -->
         <div class="right-sidebar">
+            <!-- <button class="sidebar-btn" onclick="showPaymentModal()" style="background: linear-gradient(135deg, #20bf55, #01baef); color: white; font-weight: 600;">
+                <i class="fas fa-check-circle"></i> Complete Order
+            </button> -->
             <button class="sidebar-btn" onclick="processOrder()">
                 <i class="fas fa-receipt"></i> Order
             </button>

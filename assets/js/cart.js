@@ -234,15 +234,28 @@ function updateCartDisplay() {
             cartItem.dataset.itemId = item.id;
             
             cartItem.innerHTML = `
-                <div class="item-details" data-item-id="${item.id}">
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-price">PKR ${item.totalPrice.toFixed(2)}</div>
-                </div>
-                <div class="item-quantity">
-                    <button class="quantity-btn" onclick="event.stopPropagation(); updateItemQuantity('${item.id}', ${item.quantity - 1})">-</button>
-                    <span class="quantity-display">${item.quantity}</span>
-                    <button class="quantity-btn" onclick="event.stopPropagation(); updateItemQuantity('${item.id}', ${item.quantity + 1})">+</button>
-                    <button class="delete-btn" onclick="event.stopPropagation(); removeFromCart('${item.id}')">×</button>
+                <div class="item-details" data-item-id="${item.id}" style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="flex: 1;">
+                            <div class="item-name" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 4px;">${item.name}</div>
+                            <div class="item-price" style="font-size: 12px; color: #64748b;">PKR ${item.price.toFixed(2)}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <button onclick="event.stopPropagation(); updateItemQuantity('${item.id}', ${item.quantity - 1})" 
+                                    style="width: 22px; height: 22px; border: 1px solid #d1d5db; background: #f8fafc; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; font-size: 12px;">
+                                -
+                            </button>
+                            <span style="min-width: 25px; text-align: center; font-weight: 600; color: #1e293b; font-size: 13px;">${item.quantity}</span>
+                            <button onclick="event.stopPropagation(); updateItemQuantity('${item.id}', ${item.quantity + 1})" 
+                                    style="width: 22px; height: 22px; border: 1px solid #d1d5db; background: #f8fafc; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #64748b; font-size: 12px;">
+                                +
+                            </button>
+                            <button onclick="event.stopPropagation(); removeFromCart('${item.id}')" 
+                                    style="width: 22px; height: 22px; border: 1px solid #ef4444; background: #ef4444; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-left: 4px; font-size: 12px;">
+                                ×
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
             
@@ -258,10 +271,7 @@ function updateCartDisplay() {
     // Update payment display with multiple attempts
     updatePaymentDisplay();
     
-    if (totalItems) {
-        const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-        totalItems.textContent = `Item(s): ${totalQuantity}`;
-    }
+
     
     // Update selected quantity display
     updateSelectedQuantity();
@@ -393,18 +403,36 @@ function showToast(message, type = 'info') {
 // Update payment display with multiple attempts
 function updatePaymentDisplay() {
     const totalAmount = document.getElementById('total-amount');
+    
     if (totalAmount) {
         const total = getCartTotal();
         // Convert to number and handle any type issues
         const safeTotal = parseFloat(total) || 0;
         console.log('Updating payment display:', { total, safeTotal, cartLength: cart.length, totalType: typeof total });
-        totalAmount.textContent = `Payment PKR ${safeTotal.toFixed(2)}`;
+        
+        // Update payment display with payment info and item count
+        const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+        totalAmount.innerHTML = `
+            <div style="text-align: center; padding: 12px; background: #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-weight: 600; color: #1e293b; font-size: 16px;">
+                Payment PKR ${safeTotal.toFixed(2)}
+            </div>
+            <div style="text-align: center; padding: 8px; color: #64748b; font-size: 14px; font-weight: 500;">
+                Item(s): ${totalQuantity}
+            </div>
+        `;
         
         // Double-check the update worked
         setTimeout(() => {
-            if (totalAmount.textContent !== `Payment PKR ${safeTotal.toFixed(2)}`) {
+            if (!totalAmount.innerHTML.includes(`Payment PKR ${safeTotal.toFixed(2)}`)) {
                 console.log('Payment display not updated correctly, retrying...');
-                totalAmount.textContent = `Payment PKR ${safeTotal.toFixed(2)}`;
+                totalAmount.innerHTML = `
+                    <div style="text-align: center; padding: 12px; background: #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-weight: 600; color: #1e293b; font-size: 16px;">
+                        Payment PKR ${safeTotal.toFixed(2)}
+                    </div>
+                    <div style="text-align: center; padding: 8px; color: #64748b; font-size: 14px; font-weight: 500;">
+                        Item(s): ${totalQuantity}
+                    </div>
+                `;
             }
         }, 50);
     } else {
@@ -566,94 +594,283 @@ function showOrderSuccessModal(order, qrCodeURL) {
     showModal('🎉 Order Completed!', modalContent);
 }
 
-// Enhanced payment modal with customer information
+// Enhanced payment modal with order completion functionality
 function showPaymentModal(cartData) {
-    const total = cartData.total;
+    const total = getCartTotal();
+    const items = getCartItems();
+    
+    if (items.length === 0) {
+        showToast('Cart is empty', 'error');
+        return;
+    }
+    
+    // Get customer information from the payment display
+    const customerName = document.getElementById('customer-name')?.value || '';
+    const customerPostcode = document.getElementById('customer-postcode')?.value || '';
+    const orderType = document.getElementById('order-type-select')?.value || 'dine_in';
     
     const modalContent = `
         <div style="text-align: center; margin-bottom: 20px;">
-            <h3 style="color: #1e293b; margin-bottom: 10px;">Payment Summary</h3>
+            <h3 style="color: #1e293b; margin-bottom: 10px;">Complete Order</h3>
             <h2 style="color: #20bf55; font-size: 28px; font-weight: 700;">PKR ${total.toFixed(2)}</h2>
         </div>
         
+        <!-- Order Type Selection -->
         <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #e2e8f0;">
-            <h4 style="margin: 0 0 15px 0; color: #374151;">Customer Information</h4>
+            <h4 style="margin: 0 0 15px 0; color: #374151;"><i class="fas fa-utensils"></i> Order Type</h4>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white;">
+                    <input type="radio" name="orderType" value="dine_in" ${orderType === 'dine_in' ? 'checked' : ''} style="margin-right: 8px;">
+                    <span><i class="fas fa-chair"></i> Dine In</span>
+                </label>
+                <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white;">
+                    <input type="radio" name="orderType" value="takeaway" ${orderType === 'takeaway' ? 'checked' : ''} style="margin-right: 8px;">
+                    <span><i class="fas fa-shopping-bag"></i> Takeaway</span>
+                </label>
+                <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white;">
+                    <input type="radio" name="orderType" value="delivery" ${orderType === 'delivery' ? 'checked' : ''} style="margin-right: 8px;">
+                    <span><i class="fas fa-truck"></i> Delivery</span>
+                </label>
+            </div>
+            
+            <!-- Table Number (for dine-in) -->
+            <div id="table-section" style="margin-top: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Table Number:</label>
+                <input type="number" id="tableNumber" min="1" max="50" placeholder="Enter table number" 
+                       style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;">
+            </div>
+        </div>
+        
+        <!-- Customer Information -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #e2e8f0;">
+            <h4 style="margin: 0 0 15px 0; color: #374151;"><i class="fas fa-user"></i> Customer Information</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Customer Name:</label>
-                    <input type="text" id="customer-name" placeholder="Enter customer name" 
+                    <input type="text" id="customerName" placeholder="Enter customer name" value="${customerName}"
                            style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;">
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Phone Number:</label>
-                    <input type="tel" id="customer-phone" placeholder="Enter phone number" 
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Contact Number:</label>
+                    <input type="tel" id="customerContact" placeholder="Enter phone number" 
                            style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;">
                 </div>
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Email:</label>
-                    <input type="email" id="customer-email" placeholder="Enter email address" 
+                <div style="grid-column: span 2;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Delivery Address:</label>
+                    <input type="text" id="customerAddress" placeholder="Enter delivery address (for delivery orders)" 
                            style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Postcode:</label>
-                    <input type="text" id="customer-postcode" placeholder="Enter postcode" 
+                    <input type="text" id="customerPostcode" placeholder="Enter postcode" value="${customerPostcode}"
                            style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px;">
                 </div>
             </div>
         </div>
         
+        <!-- Payment Method -->
         <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #e2e8f0;">
-            <h4 style="margin: 0 0 15px 0; color: #374151;">Order Notes</h4>
-            <textarea id="order-notes" placeholder="Enter any special instructions or notes..." 
+            <h4 style="margin: 0 0 15px 0; color: #374151;"><i class="fas fa-credit-card"></i> Payment Method</h4>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white;">
+                    <input type="radio" name="paymentMethod" value="cash" checked style="margin-right: 8px;">
+                    <span><i class="fas fa-money-bill-wave"></i> Cash</span>
+                </label>
+                <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white;">
+                    <input type="radio" name="paymentMethod" value="card" style="margin-right: 8px;">
+                    <span><i class="fas fa-credit-card"></i> Card</span>
+                </label>
+                <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white;">
+                    <input type="radio" name="paymentMethod" value="online" style="margin-right: 8px;">
+                    <span><i class="fas fa-globe"></i> Online</span>
+                </label>
+                <label style="display: flex; align-items: center; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white;">
+                    <input type="radio" name="paymentMethod" value="mobile" style="margin-right: 8px;">
+                    <span><i class="fas fa-mobile-alt"></i> Mobile</span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Notes -->
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #e2e8f0;">
+            <h4 style="margin: 0 0 15px 0; color: #374151;"><i class="fas fa-sticky-note"></i> Order Notes</h4>
+            <textarea id="orderNotes" placeholder="Add any special instructions or notes..." 
                       style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; height: 80px; resize: vertical;"></textarea>
         </div>
         
-        <div class="payment-options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0;">
-            <div class="payment-option" onclick="processPayment('cash', ${total})" 
-                 style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.3s ease;">
-                <i class="fas fa-money-bill-wave" style="font-size: 2em; margin-bottom: 10px;"></i>
-                <h4 style="margin: 0;">Cash Payment</h4>
-            </div>
-            <div class="payment-option" onclick="processPayment('card', ${total})" 
-                 style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.3s ease;">
-                <i class="fas fa-credit-card" style="font-size: 2em; margin-bottom: 10px;"></i>
-                <h4 style="margin: 0;">Card Payment</h4>
-            </div>
-            <div class="payment-option" onclick="processPayment('mobile', ${total})" 
-                 style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.3s ease;">
-                <i class="fas fa-mobile-alt" style="font-size: 2em; margin-bottom: 10px;"></i>
-                <h4 style="margin: 0;">Mobile Payment</h4>
-            </div>
-            <div class="payment-option" onclick="processPayment('online', ${total})" 
-                 style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.3s ease;">
-                <i class="fas fa-globe" style="font-size: 2em; margin-bottom: 10px;"></i>
-                <h4 style="margin: 0;">Online Payment</h4>
-            </div>
-        </div>
-        
         <div style="text-align: center; margin-top: 20px;">
-            <button class="btn btn-secondary" onclick="closeModal(document.querySelector('.modal'))">
-                Cancel
+            <button class="btn btn-secondary" onclick="closeModal(document.querySelector('.modal'))" 
+                    style="margin-right: 10px; padding: 12px 24px; border: none; border-radius: 8px; background: #64748b; color: white; cursor: pointer;">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <button class="btn btn-primary" onclick="completeOrder()" 
+                    style="padding: 12px 24px; border: none; border-radius: 8px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600;">
+                <i class="fas fa-check"></i> Complete Order
             </button>
         </div>
     `;
     
-    showModal('Payment', modalContent);
+    showModal('Complete Order', modalContent);
     
-    // Add hover effects to payment options
-    setTimeout(() => {
-        document.querySelectorAll('.payment-option').forEach(option => {
-            option.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-5px)';
-                this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.2)';
-            });
+    // Add event listeners for order type changes
+    setupOrderTypeListeners();
+}
+
+function setupOrderTypeListeners() {
+    const orderTypeInputs = document.querySelectorAll('input[name="orderType"]');
+    const tableSection = document.getElementById('table-section');
+    const customerAddress = document.getElementById('customerAddress');
+    
+    orderTypeInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const orderType = this.value;
             
-            option.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-                this.style.boxShadow = 'none';
-            });
+            // Show/hide table section for dine-in
+            if (orderType === 'dine_in') {
+                tableSection.style.display = 'block';
+                customerAddress.placeholder = 'Enter delivery address (optional)';
+                customerAddress.required = false;
+            } else if (orderType === 'takeaway') {
+                tableSection.style.display = 'none';
+                customerAddress.placeholder = 'Enter delivery address (optional)';
+                customerAddress.required = false;
+            } else if (orderType === 'delivery') {
+                tableSection.style.display = 'none';
+                customerAddress.placeholder = 'Enter delivery address (required)';
+                customerAddress.required = true;
+            }
         });
-    }, 100);
+    });
+}
+
+function completeOrder() {
+    const total = getCartTotal();
+    const items = getCartItems();
+    
+    if (items.length === 0) {
+        showToast('Cart is empty', 'error');
+        return;
+    }
+    
+    // Get form values
+    const orderType = document.querySelector('input[name="orderType"]:checked').value;
+    const tableNumber = document.getElementById('tableNumber')?.value || null;
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const customerName = document.getElementById('customerName')?.value || '';
+    const customerContact = document.getElementById('customerContact')?.value || '';
+    const customerAddress = document.getElementById('customerAddress')?.value || '';
+    const customerPostcode = document.getElementById('customerPostcode')?.value || '';
+    const notes = document.getElementById('orderNotes')?.value || '';
+    
+    // Validate delivery address for delivery orders
+    if (orderType === 'delivery' && !customerAddress.trim()) {
+        showToast('Delivery address is required for delivery orders', 'error');
+        return;
+    }
+    
+    // Prepare order data
+    const orderData = {
+        items: items,
+        customer: {
+            name: customerName,
+            contact: customerContact,
+            address: customerAddress,
+            postcode: customerPostcode
+        },
+        order_type: orderType,
+        table_number: tableNumber,
+        payment_method: paymentMethod,
+        notes: notes
+    };
+    
+    // Show loading
+    showToast('Processing order...', 'info');
+    
+    // Send order to server
+    fetch('api/complete_order.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            closeModal(document.querySelector('.modal'));
+            
+            // Show success modal with invoice
+            showOrderSuccessModal(data.order);
+            
+            // Clear cart
+            clearCart();
+            
+            // Generate new order number
+            generateNewOrderNumber();
+            
+        } else {
+            showToast('Error: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error processing order', 'error');
+    });
+}
+
+function generateNewOrderNumber() {
+    // Generate new order number for next order
+    const timestamp = new Date().getTime();
+    const random = Math.floor(Math.random() * 1000);
+    const newOrderNumber = `ORD${timestamp}${random}`;
+    
+    // Update order number display if it exists
+    const orderNumberElement = document.querySelector('.order-info span');
+    if (orderNumberElement) {
+        orderNumberElement.textContent = `Order No: ${newOrderNumber}`;
+    }
+}
+
+function showOrderSuccessModal(order) {
+    const modalContent = `
+        <div style="text-align: center; padding: 40px 20px;">
+            <div style="background: #d1fae5; color: #065f46; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <i class="fas fa-check-circle" style="font-size: 64px; margin-bottom: 20px;"></i>
+                <h3 style="font-size: 24px; margin-bottom: 10px;">Order Completed Successfully!</h3>
+                <p style="font-size: 16px; margin-bottom: 0;">Order #${order.order_number}</p>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #e2e8f0;">
+                <h4 style="margin: 0 0 15px 0; color: #374151;">Order Details</h4>
+                <div style="text-align: left;">
+                    <p><strong>Order Number:</strong> ${order.order_number}</p>
+                    <p><strong>Total Amount:</strong> PKR ${order.total_amount.toFixed(2)}</p>
+                    <p><strong>Order Type:</strong> ${order.order_type.replace('_', ' ').toUpperCase()}</p>
+                    ${order.table_number ? `<p><strong>Table:</strong> ${order.table_number}</p>` : ''}
+                    <p><strong>Payment Method:</strong> ${order.payment_method.toUpperCase()}</p>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="printInvoice(${order.id})" 
+                        style="padding: 12px 24px; border: none; border-radius: 8px; background: linear-gradient(135deg, #20bf55, #01baef); color: white; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-print"></i> Print Invoice
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal(document.querySelector('.modal'))" 
+                        style="padding: 12px 24px; border: none; border-radius: 8px; background: #64748b; color: white; cursor: pointer;">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Order Success', modalContent);
+}
+
+function printInvoice(orderId) {
+    // Open invoice in new window for printing
+    window.open(`print_invoice.php?order_id=${orderId}`, '_blank');
 }
 
 // Export all functions for global access
@@ -670,4 +887,8 @@ window.deleteSelectedItem = deleteSelectedItem;
 window.updateSelectedQuantity = updateSelectedQuantity;
 window.updateCartDisplay = updateCartDisplay;
 window.updatePaymentDisplay = updatePaymentDisplay;
-window.showToast = showToast; 
+window.showToast = showToast;
+window.showPaymentModal = showPaymentModal;
+window.completeOrder = completeOrder;
+window.printInvoice = printInvoice;
+window.showOrderSuccessModal = showOrderSuccessModal; 
