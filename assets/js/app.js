@@ -359,17 +359,23 @@ function selectTableNumber(tableNumber) {
 
 // Hold order
 function holdOrder() {
-    const cartItems = getCartItems();
+    const cartItems = window.cart || [];
     if (cartItems.length === 0) {
         showToast('Cart is empty!', 'error');
         return;
     }
     
+    // Calculate total properly
+    const total = cartItems.reduce((sum, item) => {
+        const itemTotal = (item.total_price || (item.price * item.quantity)) || 0;
+        return sum + itemTotal;
+    }, 0);
+    
     const heldOrders = JSON.parse(localStorage.getItem('heldOrders') || '[]');
     const orderData = {
         items: cartItems,
-        total: getCartTotal(),
-        customer: document.getElementById('customer-name').value,
+        total: total,
+        customer: document.getElementById('customer-name')?.value || 'Walk-in Customer',
         timestamp: new Date().toISOString(),
         orderNumber: generateOrderNumber()
     };
@@ -377,7 +383,16 @@ function holdOrder() {
     heldOrders.push(orderData);
     localStorage.setItem('heldOrders', JSON.stringify(heldOrders));
     
-    clearCart();
+    // Clear cart using the proper function
+    if (typeof clearCart === 'function') {
+        clearCart();
+    } else {
+        window.cart = [];
+        if (typeof updateCartDisplay === 'function') {
+            updateCartDisplay();
+        }
+    }
+    
     showToast('Order held successfully', 'success');
 }
 
@@ -394,7 +409,51 @@ function recallOrder() {
 
 // Kitchen done
 function kitchenDone() {
-    showToast('Order sent to kitchen', 'success');
+    const cartItems = window.cart || [];
+    if (cartItems.length === 0) {
+        showToast('Cart is empty!', 'error');
+        return;
+    }
+    
+    // Calculate total properly
+    const total = cartItems.reduce((sum, item) => {
+        const itemTotal = (item.total_price || (item.price * item.quantity)) || 0;
+        return sum + itemTotal;
+    }, 0);
+    
+    // Show kitchen order modal
+    showModal('Kitchen Order', `
+        <div style="text-align: center; padding: 20px;">
+            <h3 style="color: #20bf55; margin-bottom: 20px;">Order Sent to Kitchen</h3>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 5px 0;"><strong>Order Number:</strong> ${generateOrderNumber()}</p>
+                <p style="margin: 5px 0;"><strong>Items:</strong> ${cartItems.length}</p>
+                <p style="margin: 5px 0;"><strong>Total:</strong> PKR ${total.toFixed(2)}</p>
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="confirmKitchenOrder()" style="margin-right: 10px;">
+                    <i class="fas fa-check"></i> Confirm
+                </button>
+                <button class="btn btn-secondary" onclick="closeModal(document.querySelector('.modal'))">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    `);
+}
+
+// Confirm kitchen order
+function confirmKitchenOrder() {
+    showToast('Order confirmed and sent to kitchen', 'success');
+    closeModal(document.querySelector('.modal'));
+    
+    // Clear cart after sending to kitchen
+    if (typeof clearCart === 'function') {
+        clearCart();
+    } else {
+        window.cart = [];
+        updateCartDisplay();
+    }
 }
 
 // Additional functions
@@ -1011,13 +1070,16 @@ function showFunctions() {
             <button class="btn btn-primary" onclick="showSpecialOffers()">
                 <i class="fas fa-gift"></i> Special Offers
             </button>
-            ${canAccessBackOffice ? 
-                '<button class="btn btn-primary" onclick="openBackOffice()"><i class="fas fa-building"></i> Back Office</button>' :
-                '<button class="btn btn-secondary" onclick="openBackOffice()" style="opacity: 0.7;"><i class="fas fa-building"></i> Back Office (Admin/Cashier)</button>'
-            }
             <button class="btn btn-primary" onclick="showEasyPad()">
                 <i class="fas fa-calculator"></i> EasyPad
             </button>
+            <button class="btn btn-primary" onclick="showPizza()">
+                <i class="fas fa-pizza-slice"></i> Pizza Menu
+            </button>
+            ${canAccessBackOffice ? 
+                '<button class="btn btn-secondary" onclick="openBackOffice()"><i class="fas fa-building"></i> Back Office</button>' :
+                '<button class="btn btn-secondary" onclick="openBackOffice()" style="opacity: 0.7;"><i class="fas fa-building"></i> Back Office (Admin/Cashier)</button>'
+            }
         </div>
     `);
 }
@@ -1025,15 +1087,25 @@ function showFunctions() {
 function showMore() {
     // Check if user is admin for admin-specific functions
     const isAdmin = window.userRole === 'admin';
+    const isCashier = window.userRole === 'cashier';
     
     showModal('More Options', `
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-            <button class="btn btn-secondary" onclick="showSettings()">
+            <button class="btn btn-primary" onclick="showSettings()">
                 <i class="fas fa-cog"></i> Settings
             </button>
-            ${isAdmin ? 
+            <button class="btn btn-primary" onclick="showHelp()">
+                <i class="fas fa-question-circle"></i> Help
+            </button>
+            <button class="btn btn-primary" onclick="showNotes()">
+                <i class="fas fa-sticky-note"></i> Notes
+            </button>
+            <button class="btn btn-primary" onclick="showDressings()">
+                <i class="fas fa-bottle-water"></i> Dressings
+            </button>
+            ${(isAdmin || isCashier) ? 
                 '<button class="btn btn-secondary" onclick="showReports()"><i class="fas fa-chart-bar"></i> Reports</button>' :
-                '<button class="btn btn-secondary" onclick="showReports()" style="opacity: 0.7;"><i class="fas fa-chart-bar"></i> Reports (Admin)</button>'
+                '<button class="btn btn-secondary" onclick="showReports()" style="opacity: 0.7;"><i class="fas fa-chart-bar"></i> Reports (Admin/Cashier)</button>'
             }
             ${isAdmin ? 
                 '<button class="btn btn-secondary" onclick="showInventory()"><i class="fas fa-boxes"></i> Inventory</button>' :
@@ -1047,9 +1119,6 @@ function showMore() {
                 '<button class="btn btn-secondary" onclick="showBackup()"><i class="fas fa-download"></i> Backup</button>' :
                 '<button class="btn btn-secondary" onclick="showBackup()" style="opacity: 0.7;"><i class="fas fa-download"></i> Backup (Admin)</button>'
             }
-            <button class="btn btn-secondary" onclick="showHelp()">
-                <i class="fas fa-question-circle"></i> Help
-            </button>
         </div>
     `);
 }
@@ -1831,31 +1900,120 @@ window.processOrderWithType = function() {
 window.startNewOrder = startNewOrder;
 
 window.showHeldOrdersModal = function(heldOrders) {
-    const ordersList = heldOrders.map((order, index) => `
-        <div style="border: 1px solid #e0e0e0; padding: 10px; margin: 10px 0; border-radius: 8px;">
-            <h4>Order ${index + 1}</h4>
-            <p>Items: ${order.items.length}</p>
-            <p>Total: PKR ${order.total.toFixed(2)}</p>
-            <p>Customer: ${order.customer || 'Walk-in'}</p>
-            <button class="btn btn-primary" onclick="recallHeldOrder(${index})">Recall Order</button>
-        </div>
-    `).join('');
+    const ordersList = heldOrders.map((order, index) => {
+        // Ensure total is a number and handle potential issues
+        const total = typeof order.total === 'number' ? order.total : 
+                     (typeof order.total === 'string' ? parseFloat(order.total) : 0);
+        const itemsCount = Array.isArray(order.items) ? order.items.length : 0;
+        const customer = order.customer || 'Walk-in';
+        const timestamp = order.timestamp ? new Date(order.timestamp).toLocaleString() : 'Unknown';
+        
+        return `
+            <div style="border: 1px solid #e0e0e0; padding: 15px; margin: 10px 0; border-radius: 8px; background: #f8f9fa;">
+                <h4 style="margin: 0 0 10px 0; color: #20bf55;">Order ${index + 1}</h4>
+                <div style="margin-bottom: 10px;">
+                    <p style="margin: 5px 0;"><strong>Items:</strong> ${itemsCount}</p>
+                    <p style="margin: 5px 0;"><strong>Total:</strong> PKR ${total.toFixed(2)}</p>
+                    <p style="margin: 5px 0;"><strong>Customer:</strong> ${customer}</p>
+                    <p style="margin: 5px 0; font-size: 12px; color: #666;"><strong>Time:</strong> ${timestamp}</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="recallHeldOrder(${index})" style="flex: 1;">
+                        <i class="fas fa-redo"></i> Recall Order
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteHeldOrder(${index})" style="flex: 1;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
     
-    showModal('Held Orders', ordersList);
+    const modalContent = `
+        <div>
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #20bf55;">Held Orders (${heldOrders.length})</h3>
+            </div>
+            ${ordersList}
+            ${heldOrders.length > 0 ? `
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-secondary" onclick="clearAllHeldOrders()">
+                        <i class="fas fa-trash"></i> Clear All Held Orders
+                    </button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    showModal('Held Orders', modalContent);
 };
 
 window.recallHeldOrder = function(index) {
     const heldOrders = JSON.parse(localStorage.getItem('heldOrders') || '[]');
     if (heldOrders[index]) {
         const order = heldOrders[index];
-        order.items.forEach(item => {
-            addToCart(item.id, item.name, item.price, item.quantity);
-        });
+        
+        // Clear current cart first
+        if (typeof clearCart === 'function') {
+            clearCart();
+        } else {
+            window.cart = [];
+        }
+        
+        // Add items from held order to cart
+        if (Array.isArray(order.items)) {
+            order.items.forEach(item => {
+                if (typeof addToCart === 'function') {
+                    addToCart(item.id, item.name, item.price, item.quantity);
+                } else {
+                    // Fallback if addToCart is not available
+                    const cartItem = {
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        total_price: item.total_price || (item.price * item.quantity)
+                    };
+                    window.cart.push(cartItem);
+                }
+            });
+        }
+        
+        // Remove the recalled order from held orders
         heldOrders.splice(index, 1);
         localStorage.setItem('heldOrders', JSON.stringify(heldOrders));
+        
+        // Update cart display
+        if (typeof updateCartDisplay === 'function') {
+            updateCartDisplay();
+        }
+        
         closeModal(document.querySelector('.modal'));
         showToast('Order recalled successfully', 'success');
     }
+};
+
+window.deleteHeldOrder = function(index) {
+    const heldOrders = JSON.parse(localStorage.getItem('heldOrders') || '[]');
+    if (heldOrders[index]) {
+        heldOrders.splice(index, 1);
+        localStorage.setItem('heldOrders', JSON.stringify(heldOrders));
+        showToast('Held order deleted', 'success');
+        
+        // Refresh the modal
+        const newHeldOrders = JSON.parse(localStorage.getItem('heldOrders') || '[]');
+        if (newHeldOrders.length === 0) {
+            closeModal(document.querySelector('.modal'));
+        } else {
+            showHeldOrdersModal(newHeldOrders);
+        }
+    }
+};
+
+window.clearAllHeldOrders = function() {
+    localStorage.removeItem('heldOrders');
+    closeModal(document.querySelector('.modal'));
+    showToast('All held orders cleared', 'success');
 };
 
 window.addComboToCart = function() {
@@ -1920,6 +2078,9 @@ window.addComboToCart = addComboToCart;
 window.addBurgerCombo = addBurgerCombo;
 window.selectTableNumber = selectTableNumber;
 window.recallHeldOrder = recallHeldOrder;
+window.deleteHeldOrder = deleteHeldOrder;
+window.clearAllHeldOrders = clearAllHeldOrders;
+window.confirmKitchenOrder = confirmKitchenOrder;
 window.calcBackspace = calcBackspace;
 window.calcQuickAmount = calcQuickAmount;
 

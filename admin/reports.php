@@ -223,6 +223,7 @@ $category_performance = $stmt->fetchAll();
                 <span>to</span>
                 <input type="date" name="end_date" value="<?php echo $end_date; ?>">
                 <button type="submit" class="btn-admin btn-primary">Apply Filter</button>
+                <a href="reports.php" class="btn-admin btn-secondary" style="margin-left: 10px;">Clear Filter</a>
             </form>
         </div>
         

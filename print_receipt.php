@@ -54,6 +54,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'payment_method' => $order['payment_method']
         ];
         
+        // Calculate tax if not stored in database
+        if (empty($orderData['tax_amount']) || $orderData['tax_amount'] == 0) {
+            // Get tax rate from settings
+            $tax_rate = getSetting('tax_rate') ?: 15; // Default to 15% if not set
+            $orderData['tax_amount'] = ($orderData['subtotal'] * $tax_rate) / 100;
+        } else {
+            // If tax_amount exists, get the tax rate from settings for display
+            $tax_rate = getSetting('tax_rate') ?: 15;
+        }
+        
         // Generate QR code data
         $qrData = json_encode([
             'order_number' => $order['order_number'],
@@ -405,7 +415,7 @@ if (!$orderData) {
                 <span>PKR <?php echo number_format($orderData['subtotal'], 2); ?></span>
             </div>
             <div class="total-row">
-                <span>Tax (15%):</span>
+                <span>Tax (<?php echo $tax_rate; ?>%):</span>
                 <span>PKR <?php echo number_format($orderData['tax_amount'], 2); ?></span>
             </div>
             <div class="total-row final">

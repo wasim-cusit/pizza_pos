@@ -97,22 +97,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $db->beginTransaction();
                     
-                    // Delete size variants first
-                    $query = "DELETE FROM item_size_variants WHERE item_id = ?";
+                    // Check if item is used in any orders
+                    $query = "SELECT COUNT(*) as count FROM order_items WHERE item_id = ?";
                     $stmt = $db->prepare($query);
                     $stmt->execute([$id]);
+                    $orderCount = $stmt->fetch()['count'];
                     
-                    // Delete the item
-                    $query = "DELETE FROM items WHERE id = ?";
-                    $stmt = $db->prepare($query);
-                    $stmt->execute([$id]);
-                    
-                    $db->commit();
-                    header('Location: manage_items.php?success=Item deleted successfully');
-                    exit();
+                    if ($orderCount > 0) {
+                        // Item is used in orders, perform soft delete
+                        $query = "UPDATE items SET is_deleted = 1, is_available = 0 WHERE id = ?";
+                        $stmt = $db->prepare($query);
+                        $stmt->execute([$id]);
+                        
+                        $db->commit();
+                        header('Location: manage_items.php?success=Item soft deleted (used in ' . $orderCount . ' orders)');
+                        exit();
+                    } else {
+                        // Item is not used in orders, perform hard delete
+                        // Delete size variants first
+                        $query = "DELETE FROM item_size_variants WHERE item_id = ?";
+                        $stmt = $db->prepare($query);
+                        $stmt->execute([$id]);
+                        
+                        // Delete the item
+                        $query = "DELETE FROM items WHERE id = ?";
+                        $stmt = $db->prepare($query);
+                        $stmt->execute([$id]);
+                        
+                        $db->commit();
+                        header('Location: manage_items.php?success=Item deleted successfully');
+                        exit();
+                    }
                 } catch (Exception $e) {
                     $db->rollBack();
                     header('Location: manage_items.php?error=Error deleting item: ' . $e->getMessage());
+                    exit();
+                }
+                break;
+                
+            case 'restore':
+                $id = (int)$_POST['id'];
+                
+                try {
+                    $query = "UPDATE items SET is_deleted = 0, is_available = 1 WHERE id = ?";
+                    $stmt = $db->prepare($query);
+                    $stmt->execute([$id]);
+                    
+                    header('Location: manage_items.php?success=Item restored successfully');
+                    exit();
+                } catch (Exception $e) {
+                    header('Location: manage_items.php?error=Error restoring item: ' . $e->getMessage());
                     exit();
                 }
                 break;
@@ -126,10 +160,11 @@ $stmt = $db->prepare($query);
 $stmt->execute();
 $categories = $stmt->fetchAll();
 
-// Get items with category names and size variants
+// Get items with category names and size variants (excluding soft-deleted items)
 $query = "SELECT i.*, c.name as category_name 
           FROM items i 
           JOIN categories c ON i.category_id = c.id 
+          WHERE i.is_deleted = 0
           ORDER BY c.name, i.name";
 $stmt = $db->prepare($query);
 $stmt->execute();
@@ -414,6 +449,9 @@ foreach ($items as $item) {
                 <button class="btn-admin btn-primary" onclick="showAddModal()">
                     <i class="fas fa-plus"></i> Add New Item
                 </button>
+                <button class="btn-admin btn-secondary" onclick="showSoftDeletedItems()">
+                    <i class="fas fa-trash"></i> View Deleted Items
+                </button>
                 <a href="index.php" class="btn-admin btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Dashboard
                 </a>
@@ -520,17 +558,17 @@ foreach ($items as $item) {
                         <label for="has_size_variants">Enable Size Variants</label>
                     </div>
                 </div>
-                <div id="size-variants-section" class="size-variants-section" style="display: none;">
-                    <h4>Size Variants</h4>
-                    <div id="size-variants-container">
-                        <div class="size-variant-row">
-                            <input type="text" name="size_variants[0][name]" placeholder="Size Name (e.g., Small)" required>
-                            <input type="number" name="size_variants[0][price]" step="0.01" placeholder="Price" required>
-                            <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
-                        </div>
-                    </div>
-                    <button type="button" class="add-size-btn" onclick="addSizeVariant()">Add Another Size</button>
-                </div>
+                                 <div id="size-variants-section" class="size-variants-section" style="display: none;">
+                     <h4>Size Variants</h4>
+                     <div id="size-variants-container">
+                         <div class="size-variant-row">
+                             <input type="text" name="size_variants[0][name]" placeholder="Size Name (e.g., Small)">
+                             <input type="number" name="size_variants[0][price]" step="0.01" placeholder="Price">
+                             <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+                         </div>
+                     </div>
+                     <button type="button" class="add-size-btn" onclick="addSizeVariant()">Add Another Size</button>
+                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-admin btn-primary">Add Item</button>
                     <button type="button" class="btn-admin btn-secondary" onclick="closeModal('addModal')">Cancel</button>
@@ -633,90 +671,111 @@ foreach ($items as $item) {
             }
         }
         
-        function toggleSizeVariants() {
-            const checkbox = document.getElementById('has_size_variants');
-            const section = document.getElementById('size-variants-section');
-            const priceInput = document.querySelector('input[name="price"]');
-            
-            if (checkbox.checked) {
-                section.style.display = 'block';
-                priceInput.required = false;
-                priceInput.placeholder = 'Base price (optional)';
-            } else {
-                section.style.display = 'none';
-                priceInput.required = true;
-                priceInput.placeholder = 'Price';
-            }
-        }
+                 function toggleSizeVariants() {
+             const checkbox = document.getElementById('has_size_variants');
+             const section = document.getElementById('size-variants-section');
+             const priceInput = document.querySelector('input[name="price"]');
+             const sizeInputs = section.querySelectorAll('input[name*="[name]"], input[name*="[price]"]');
+             
+             if (checkbox.checked) {
+                 section.style.display = 'block';
+                 priceInput.required = false;
+                 priceInput.placeholder = 'Base price (optional)';
+                 // Make size variant inputs required when section is visible
+                 sizeInputs.forEach(input => {
+                     input.required = true;
+                 });
+             } else {
+                 section.style.display = 'none';
+                 priceInput.required = true;
+                 priceInput.placeholder = 'Price';
+                 // Remove required from size variant inputs when section is hidden
+                 sizeInputs.forEach(input => {
+                     input.required = false;
+                 });
+             }
+         }
         
-        function toggleEditSizeVariants() {
-            const checkbox = document.getElementById('edit_has_size_variants');
-            const section = document.getElementById('edit-size-variants-section');
-            const priceInput = document.getElementById('edit_price');
-            
-            if (checkbox.checked) {
-                section.style.display = 'block';
-                priceInput.required = false;
-                priceInput.placeholder = 'Base price (optional)';
-            } else {
-                section.style.display = 'none';
-                priceInput.required = true;
-                priceInput.placeholder = 'Price';
-            }
-        }
+                 function toggleEditSizeVariants() {
+             const checkbox = document.getElementById('edit_has_size_variants');
+             const section = document.getElementById('edit-size-variants-section');
+             const priceInput = document.getElementById('edit_price');
+             const sizeInputs = section.querySelectorAll('input[name*="[name]"], input[name*="[price]"]');
+             
+             if (checkbox.checked) {
+                 section.style.display = 'block';
+                 priceInput.required = false;
+                 priceInput.placeholder = 'Base price (optional)';
+                 // Make size variant inputs required when section is visible
+                 sizeInputs.forEach(input => {
+                     input.required = true;
+                 });
+             } else {
+                 section.style.display = 'none';
+                 priceInput.required = true;
+                 priceInput.placeholder = 'Price';
+                 // Remove required from size variant inputs when section is hidden
+                 sizeInputs.forEach(input => {
+                     input.required = false;
+                 });
+             }
+         }
         
-        function addSizeVariant() {
-            const container = document.getElementById('size-variants-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'size-variant-row';
-            newRow.innerHTML = `
-                <input type="text" name="size_variants[${sizeVariantCounter}][name]" placeholder="Size Name (e.g., Medium)" required>
-                <input type="number" name="size_variants[${sizeVariantCounter}][price]" step="0.01" placeholder="Price" required>
-                <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
-            `;
-            container.appendChild(newRow);
-            sizeVariantCounter++;
-        }
+                 function addSizeVariant() {
+             const container = document.getElementById('size-variants-container');
+             const checkbox = document.getElementById('has_size_variants');
+             const newRow = document.createElement('div');
+             newRow.className = 'size-variant-row';
+             newRow.innerHTML = `
+                 <input type="text" name="size_variants[${sizeVariantCounter}][name]" placeholder="Size Name (e.g., Medium)" ${checkbox.checked ? 'required' : ''}>
+                 <input type="number" name="size_variants[${sizeVariantCounter}][price]" step="0.01" placeholder="Price" ${checkbox.checked ? 'required' : ''}>
+                 <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+             `;
+             container.appendChild(newRow);
+             sizeVariantCounter++;
+         }
         
-        function addEditSizeVariant() {
-            const container = document.getElementById('edit-size-variants-container');
-            const newRow = document.createElement('div');
-            newRow.className = 'size-variant-row';
-            newRow.innerHTML = `
-                <input type="text" name="size_variants[${editSizeVariantCounter}][name]" placeholder="Size Name (e.g., Medium)" required>
-                <input type="number" name="size_variants[${editSizeVariantCounter}][price]" step="0.01" placeholder="Price" required>
-                <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
-            `;
-            container.appendChild(newRow);
-            editSizeVariantCounter++;
-        }
+                 function addEditSizeVariant() {
+             const container = document.getElementById('edit-size-variants-container');
+             const checkbox = document.getElementById('edit_has_size_variants');
+             const newRow = document.createElement('div');
+             newRow.className = 'size-variant-row';
+             newRow.innerHTML = `
+                 <input type="text" name="size_variants[${editSizeVariantCounter}][name]" placeholder="Size Name (e.g., Medium)" ${checkbox.checked ? 'required' : ''}>
+                 <input type="number" name="size_variants[${editSizeVariantCounter}][price]" step="0.01" placeholder="Price" ${checkbox.checked ? 'required' : ''}>
+                 <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+             `;
+             container.appendChild(newRow);
+             editSizeVariantCounter++;
+         }
         
         function removeSizeVariant(button) {
             button.parentElement.remove();
         }
         
-        function loadEditSizeVariants(sizeVariants) {
-            const container = document.getElementById('edit-size-variants-container');
-            container.innerHTML = '';
-            editSizeVariantCounter = 0;
-            
-            if (sizeVariants && sizeVariants.length > 0) {
-                sizeVariants.forEach(variant => {
-                    const newRow = document.createElement('div');
-                    newRow.className = 'size-variant-row';
-                    newRow.innerHTML = `
-                        <input type="text" name="size_variants[${editSizeVariantCounter}][name]" value="${variant.size_name}" placeholder="Size Name" required>
-                        <input type="number" name="size_variants[${editSizeVariantCounter}][price]" value="${variant.size_price}" step="0.01" placeholder="Price" required>
-                        <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
-                    `;
-                    container.appendChild(newRow);
-                    editSizeVariantCounter++;
-                });
-            } else {
-                // Add one empty row
-                addEditSizeVariant();
-            }
-        }
+                 function loadEditSizeVariants(sizeVariants) {
+             const container = document.getElementById('edit-size-variants-container');
+             const checkbox = document.getElementById('edit_has_size_variants');
+             container.innerHTML = '';
+             editSizeVariantCounter = 0;
+             
+             if (sizeVariants && sizeVariants.length > 0) {
+                 sizeVariants.forEach(variant => {
+                     const newRow = document.createElement('div');
+                     newRow.className = 'size-variant-row';
+                     newRow.innerHTML = `
+                         <input type="text" name="size_variants[${editSizeVariantCounter}][name]" value="${variant.size_name}" placeholder="Size Name" ${checkbox.checked ? 'required' : ''}>
+                         <input type="number" name="size_variants[${editSizeVariantCounter}][price]" value="${variant.size_price}" step="0.01" placeholder="Price" ${checkbox.checked ? 'required' : ''}>
+                         <button type="button" class="remove-size-btn" onclick="removeSizeVariant(this)">Remove</button>
+                     `;
+                     container.appendChild(newRow);
+                     editSizeVariantCounter++;
+                 });
+             } else {
+                 // Add one empty row
+                 addEditSizeVariant();
+             }
+         }
         
         // Close modal when clicking outside
         window.onclick = function(event) {
@@ -727,6 +786,134 @@ foreach ($items as $item) {
                 }
             });
         }
+        
+        // Function to show soft-deleted items
+        function showSoftDeletedItems() {
+            fetch('get_soft_deleted_items.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSoftDeletedModal(data.items);
+                    } else {
+                        alert('Error loading soft-deleted items: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading soft-deleted items');
+                });
+        }
+        
+        function showSoftDeletedModal(items) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            
+            let itemsHtml = '';
+            if (items.length > 0) {
+                items.forEach(item => {
+                    itemsHtml += `
+                        <div style="border: 1px solid #e0e0e0; padding: 15px; margin: 10px 0; border-radius: 8px; background: #f8f9fa;">
+                            <h4 style="margin: 0 0 10px 0; color: #dc3545;">${item.name}</h4>
+                            <p style="margin: 5px 0;"><strong>Category:</strong> ${item.category_name}</p>
+                            <p style="margin: 5px 0;"><strong>Price:</strong> PKR ${item.price}</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #666;"><strong>Deleted:</strong> ${item.updated_at}</p>
+                            <button class="btn btn-primary" onclick="restoreItem(${item.id})" style="margin-top: 10px;">
+                                <i class="fas fa-undo"></i> Restore Item
+                            </button>
+                        </div>
+                    `;
+                });
+            } else {
+                itemsHtml = '<p style="text-align: center; color: #666;">No soft-deleted items found.</p>';
+            }
+            
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Soft-Deleted Items (${items.length})</h3>
+                        <span class="close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+                 function restoreItem(itemId) {
+             if (confirm('Are you sure you want to restore this item?')) {
+                 const form = document.createElement('form');
+                 form.method = 'POST';
+                 form.innerHTML = `
+                     <input type="hidden" name="action" value="restore">
+                     <input type="hidden" name="id" value="${itemId}">
+                 `;
+                 document.body.appendChild(form);
+                 form.submit();
+             }
+         }
+         
+         // Form validation for size variants
+         function validateSizeVariants() {
+             const hasSizeVariants = document.getElementById('has_size_variants');
+             const editHasSizeVariants = document.getElementById('edit_has_size_variants');
+             
+             // Check if we're in add or edit mode
+             const isEditMode = editHasSizeVariants !== null;
+             const checkbox = isEditMode ? editHasSizeVariants : hasSizeVariants;
+             
+             if (checkbox && checkbox.checked) {
+                 const section = isEditMode ? 
+                     document.getElementById('edit-size-variants-section') : 
+                     document.getElementById('size-variants-section');
+                 
+                 const sizeInputs = section.querySelectorAll('input[name*="[name]"], input[name*="[price]"]');
+                 let hasValidVariant = false;
+                 
+                 // Check if at least one complete size variant is filled
+                 for (let i = 0; i < sizeInputs.length; i += 2) {
+                     const nameInput = sizeInputs[i];
+                     const priceInput = sizeInputs[i + 1];
+                     
+                     if (nameInput.value.trim() && priceInput.value.trim()) {
+                         hasValidVariant = true;
+                         break;
+                     }
+                 }
+                 
+                 if (!hasValidVariant) {
+                     alert('Please add at least one size variant with both name and price.');
+                     return false;
+                 }
+             }
+             
+             return true;
+         }
+         
+         // Add form validation to both forms
+         document.addEventListener('DOMContentLoaded', function() {
+             const addForm = document.querySelector('#addModal form');
+             const editForm = document.querySelector('#editModal form');
+             
+             if (addForm) {
+                 addForm.addEventListener('submit', function(e) {
+                     if (!validateSizeVariants()) {
+                         e.preventDefault();
+                     }
+                 });
+             }
+             
+             if (editForm) {
+                 editForm.addEventListener('submit', function(e) {
+                     if (!validateSizeVariants()) {
+                         e.preventDefault();
+                     }
+                 });
+             }
+         });
     </script>
 </body>
 </html> 

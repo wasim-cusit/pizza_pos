@@ -96,7 +96,7 @@ body {
 
 /* Left Sidebar - Cart */
 .cart-sidebar {
-    width: 380px;
+    width: 560px;
     background: white;
     border-right: 2px solid #e8edf2;
     display: flex;
@@ -106,7 +106,7 @@ body {
 
 .cart-header {
     padding: 20px 25px;
-    border-bottom: 2px solid #f1f5f9;
+    /* border-bottom: 2px solid #f1f5f9; */
     background: linear-gradient(135deg, #20bf55 0%, #1a9f47 100%);
     color: white;
 }
@@ -135,11 +135,11 @@ body {
 }
 
 .cart-item {
-    background: #f8fafc;
-    padding: 16px;
-    margin-bottom: 12px;
+    /* background: #f8fafc; */
+    /* padding: 16px; */
+    /* margin-bottom: 12px; */
     border-radius: 12px;
-    border: 2px solid #e2e8f0;
+    /* border: 2px solid #e2e8f0; */
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -168,10 +168,10 @@ body {
 }
 
 .item-details {
-    display: flex;
+    /* display: flex; */
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 4px;
 }
 
 .item-name {
@@ -431,6 +431,7 @@ body {
     border: 2px solid #e2e8f0;
     border-radius: 12px;
     padding: 18px 12px;
+    margin: 5px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -494,7 +495,7 @@ body {
 /* Items Section */
 .items-section {
     flex: 1;
-    padding: 25px;
+    padding: 10px;
     overflow-y: auto;
 }
 
@@ -508,7 +509,7 @@ body {
     background: white;
     border: 2px solid #e2e8f0;
     border-radius: 16px;
-    padding: 20px;
+    /* padding: 20  px; */
     cursor: pointer;
     transition: all 0.3s ease;
     text-align: center;

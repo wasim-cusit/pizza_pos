@@ -24,11 +24,11 @@ try {
         exit;
     }
     
-    // Search items by name or description
+    // Search items by name or description (excluding soft-deleted items)
     $searchQuery = "SELECT i.id, i.name, i.price, i.description, i.image, c.name as category_name 
                     FROM items i 
                     JOIN categories c ON i.category_id = c.id 
-                    WHERE i.is_available = 1 
+                    WHERE i.is_available = 1 AND i.is_deleted = 0
                     AND (i.name LIKE ? OR i.description LIKE ?) 
                     ORDER BY i.name 
                     LIMIT 50";

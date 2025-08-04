@@ -167,8 +167,8 @@ if (empty($items)) {
     <!-- Main Container -->
     <div class="main-container">
         <!-- Left Sidebar - Cart -->
-        <div class="cart-sidebar" style="background: white; border-right: 1px solid #e2e8f0; width: 350px; display: flex; flex-direction: column;">
-            <div class="cart-header" style="background: #20bf55; color: white; padding: 15px; border-radius: 0;">
+        <div class="cart-sidebar" style="background: white; border-right: 1px solid #e2e8f0; width: 400px; display: flex; flex-direction: column;">
+            <div class="cart-header" style="background: #20bf55; color: white; padding: 13px; border-radius: 0;">
                 <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🛒 Order Cart</h3>
                 <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">Item(s): <span id="cart-item-count">0</span></p>
             </div>
@@ -178,7 +178,7 @@ if (empty($items)) {
             </div>
             
             <!-- Customer Selection -->
-            <div style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
+            <div style="padding: 8px; border-bottom: 1px solid #e2e8f0;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                     <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Customer:</label>
@@ -204,7 +204,7 @@ if (empty($items)) {
             </div>
             
             <!-- Payment Section -->    
-            <div class="payment-section" style="padding: 15px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+            <div class="payment-section" style="padding: 3px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
                 <div class="payment-amount" id="total-amount">
                     <!-- Payment display will be updated by JavaScript -->
                 </div>
@@ -379,7 +379,7 @@ if (empty($items)) {
         <div class="modal-content" style="max-width: 500px; width: 90%;">
             <div class="modal-header" style="background: #20bf55; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
                 <h3 id="size-modal-title" style="margin: 0; font-size: 18px;">Select Size</h3>
-                <span class="close" onclick="closeSizeModal()" style="color: white; font-size: 24px; font-weight: bold; cursor: pointer; position: absolute; right: 15px; top: 10px;">&times;</span>
+                <span class="close" onclick="closeSizeModal()" style="color: black; font-size: 30px; font-weight: bold; cursor: pointer; position: absolute; right: 57px; top: 34px;">&times;</span>
             </div>
             <div class="modal-body" style="padding: 20px;">
                 <div id="size-options" style="display: grid; gap: 10px;">

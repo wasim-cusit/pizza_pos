@@ -38,6 +38,7 @@ CREATE TABLE items (
     image VARCHAR(255) DEFAULT 'default-item.jpg',
     description TEXT,
     is_available BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
     stock_quantity INT DEFAULT 0,
     has_size_variants BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

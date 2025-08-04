@@ -63,8 +63,8 @@ function displaySizeOptions(item) {
     if (!modal) {
         console.log('Creating size modal dynamically');
         const modalHTML = `
-            <div id="size-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
-                <div class="modal-content" style="max-width: 500px; width: 90%; background-color: white; margin: 5% auto; border-radius: 10px; position: relative;">
+            <div id="size-modal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="max-width: 500px; width: 90%; background-color: white; border-radius: 10px; position: relative; margin: 0;">
                     <div class="modal-header" style="background: #20bf55; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
                         <h3 id="size-modal-title" style="margin: 0; font-size: 18px;">Select Size</h3>
                         <span class="close" onclick="closeSizeModal()" style="color: white; font-size: 24px; font-weight: bold; cursor: pointer; position: absolute; right: 15px; top: 10px;">&times;</span>
@@ -72,6 +72,9 @@ function displaySizeOptions(item) {
                     <div class="modal-body" style="padding: 20px;">
                         <div id="size-options" style="display: grid; gap: 10px;">
                             <!-- Size options will be loaded here -->
+                        </div>
+                        <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                            <button onclick="closeSizeModal()" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; margin-right: 10px;">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -83,6 +86,20 @@ function displaySizeOptions(item) {
         modal = document.getElementById('size-modal');
         title = document.getElementById('size-modal-title');
         optionsContainer = document.getElementById('size-options');
+        
+        // Add click-outside-to-close functionality
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeSizeModal();
+            }
+        });
+        
+        // Add ESC key to close
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display === 'block') {
+                closeSizeModal();
+            }
+        });
     }
     
     // Check if all required elements exist
@@ -441,7 +458,7 @@ function updateCartDisplay() {
             const itemDisplayName = item.sizeName ? `${item.name} (${item.sizeName})` : item.name;
             
             cartItem.innerHTML = `
-                <div class="item-details" data-item-id="${item.id}" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease; position: relative; overflow: hidden;">
+                <div class="item-details" data-item-id="${item.id}" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: all 0.3s ease; position: relative; overflow: hidden;">
                     <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #20bf55, #01baef);"></div>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="flex: 1;">

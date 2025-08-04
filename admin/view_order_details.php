@@ -41,6 +41,16 @@ if (!$order) {
     exit;
 }
 
+// Calculate tax if not stored in database
+if (empty($order['tax_amount']) || $order['tax_amount'] == 0) {
+    // Get tax rate from settings
+    $tax_rate = getSetting('tax_rate') ?: 15; // Default to 15% if not set
+    $order['tax_amount'] = ($order['subtotal'] * $tax_rate) / 100;
+} else {
+    // If tax_amount exists, get the tax rate from settings for display
+    $tax_rate = getSetting('tax_rate') ?: 15;
+}
+
 // Get order items
 $query = "SELECT * FROM order_items WHERE order_id = ? ORDER BY id";
 $stmt = $db->prepare($query);
@@ -678,8 +688,8 @@ $qrCodeURL = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . 
                 </div>
                 <?php endif; ?>
                 <div class="total-row">
-                    <span class="total-label">Tax (15%):</span>
-                    <span class="total-value">PKR <?php echo number_format($order['tax_amount'], 2); ?></span>
+                    <span class="total-label">Tax (<?php echo $tax_rate ?? 15; ?>%):</span>
+                    <span class="total-value">PKR <?php echo number_format($order['tax_amount'] ?? 0, 2); ?></span>
                 </div>
                 <div class="total-row final">
                     <span class="total-label">Total Amount:</span>

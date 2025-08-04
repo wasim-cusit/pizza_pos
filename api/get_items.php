@@ -18,11 +18,11 @@ if (!$categoryId) {
 }
 
 try {
-    // Get items for the category
+    // Get items for the category (excluding soft-deleted items)
     $query = "SELECT i.*, c.name as category_name 
               FROM items i 
               LEFT JOIN categories c ON i.category_id = c.id 
-              WHERE i.category_id = ? AND i.is_available = 1 
+              WHERE i.category_id = ? AND i.is_available = 1 AND i.is_deleted = 0 
               ORDER BY i.name";
     
     $stmt = $db->prepare($query);
