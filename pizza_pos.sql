@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 04, 2025 at 10:19 PM
+-- Generation Time: Aug 04, 2025 at 10:52 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -42,23 +42,23 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `icon`, `image`, `display_order`, `is_active`, `created_at`) VALUES
-(1, 'PIZZA', 'default-icon.png', 'default-category.jpg', 1, 1, '2025-08-04 18:56:06'),
-(2, 'BURGERS', 'default-icon.png', 'default-category.jpg', 2, 1, '2025-08-04 18:56:06'),
-(3, 'FRIED CHICKEN', 'default-icon.png', 'default-category.jpg', 3, 1, '2025-08-04 18:56:06'),
-(4, 'WINGS', 'default-icon.png', 'default-category.jpg', 4, 1, '2025-08-04 18:56:06'),
-(5, 'SOUP', 'default-icon.png', 'default-category.jpg', 5, 1, '2025-08-04 18:56:06'),
-(6, 'CHINESE', 'default-icon.png', 'default-category.jpg', 6, 1, '2025-08-04 18:56:06'),
-(7, 'COLD DRINKS', 'default-icon.png', 'default-category.jpg', 7, 1, '2025-08-04 18:56:06'),
-(8, 'HOT DRINKS', 'default-icon.png', 'default-category.jpg', 8, 1, '2025-08-04 18:56:06'),
-(9, 'SHAWARMA', 'default-icon.png', 'default-category.jpg', 9, 1, '2025-08-04 18:56:06'),
-(10, 'FRIES', 'default-icon.png', 'default-category.jpg', 10, 1, '2025-08-04 18:56:06'),
-(11, 'SHAKES', 'default-icon.png', 'default-category.jpg', 11, 1, '2025-08-04 18:56:06'),
-(12, 'SANDWICH', 'default-icon.png', 'default-category.jpg', 12, 1, '2025-08-04 18:56:06'),
-(13, 'NUGGETS', 'default-icon.png', 'default-category.jpg', 3, 1, '2025-08-04 19:35:12'),
-(14, 'CHOWMEIN', 'default-icon.png', 'default-category.jpg', 5, 1, '2025-08-04 19:46:43'),
-(15, 'PASTA', 'default-icon.png', 'default-category.jpg', 6, 1, '2025-08-04 19:48:46'),
-(16, 'DRINKS', 'default-icon.png', 'default-category.jpg', 8, 1, '2025-08-04 20:07:13'),
-(17, 'DELIVERY', 'default-icon.png', 'default-category.jpg', 5, 1, '2025-08-04 20:13:51');
+(1, 'PIZZA', 'fas fa-pizza-slice', 'default-category.jpg', 1, 1, '2025-08-04 18:56:06'),
+(2, 'BURGERS', 'fas fa-hamburger', 'default-category.jpg', 2, 1, '2025-08-04 18:56:06'),
+(3, 'FRIED CHICKEN', 'fas fa-drumstick-bite', 'default-category.jpg', 3, 1, '2025-08-04 18:56:06'),
+(4, 'WINGS', 'fas fa-feather-alt', 'default-category.jpg', 4, 1, '2025-08-04 18:56:06'),
+(5, 'SOUP', 'fas fa-utensils', 'default-category.jpg', 5, 1, '2025-08-04 18:56:06'),
+(6, 'CHINESE', 'fas fa-bowl-food', 'default-category.jpg', 6, 1, '2025-08-04 18:56:06'),
+(7, 'COLD DRINKS', 'fas fa-glass-whiskey', 'default-category.jpg', 7, 1, '2025-08-04 18:56:06'),
+(8, 'HOT DRINKS', 'fas fa-coffee', 'default-category.jpg', 8, 1, '2025-08-04 18:56:06'),
+(9, 'SHAWARMA', 'fas fa-bread-slice', 'default-category.jpg', 9, 1, '2025-08-04 18:56:06'),
+(10, 'FRIES', 'fas fa-french-fries', 'default-category.jpg', 10, 1, '2025-08-04 18:56:06'),
+(11, 'SHAKES', 'fas fa-ice-cream', 'default-category.jpg', 11, 1, '2025-08-04 18:56:06'),
+(12, 'SANDWICH', 'fas fa-sandwich', 'default-category.jpg', 12, 1, '2025-08-04 18:56:06'),
+(13, 'NUGGETS', 'fas fa-cube', 'default-category.jpg', 13, 1, '2025-08-04 19:35:12'),
+(14, 'CHOWMEIN', 'fas fa-utensils', 'default-category.jpg', 14, 1, '2025-08-04 19:46:43'),
+(15, 'PASTA', 'fas fa-spaghetti-monster-flying', 'default-category.jpg', 15, 1, '2025-08-04 19:48:46'),
+(16, 'DRINKS', 'fas fa-glass-whiskey', 'default-category.jpg', 16, 1, '2025-08-04 20:07:13'),
+(17, 'DELIVERY', 'fas fa-truck', 'default-category.jpg', 17, 1, '2025-08-04 20:13:51');
 
 -- --------------------------------------------------------
 

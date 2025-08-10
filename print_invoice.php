@@ -69,36 +69,121 @@ $qrData = json_encode([
             body { 
                 margin: 0; 
                 padding: 0;
-                font-size: 8px;
+                font-size: 10px;
+                width: 100mm;
+                min-height: 100vh;
             }
             .no-print { display: none !important; }
             .invoice-container { 
                 box-shadow: none !important;
                 margin: 0 !important;
                 border-radius: 0 !important;
-                width: 80mm !important;
-                max-width: 80mm !important;
+                width: 100mm !important;
+                max-width: 100mm !important;
+                min-height: 500px !important;
+                padding: 0 !important;
             }
             @page {
                 margin: 0;
-                size: 80mm auto;
+                size: 100mm auto;
                 padding: 0;
             }
             .header, .order-info, .customer-info, .items-section, .totals-section, .footer {
-                padding: 3px !important;
+                padding: 5px 8px !important;
+                margin: 0 !important;
             }
             .item-row, .order-row, .total-row {
-                margin-bottom: 1px !important;
-                font-size: 7px !important;
+                margin-bottom: 4px !important;
+                font-size: 9px !important;
+                line-height: 1.3 !important;
+                display: flex !important;
+                align-items: center !important;
             }
             .restaurant-name {
-                font-size: 10px !important;
+                font-size: 12px !important;
+                margin-bottom: 4px !important;
             }
             .restaurant-info {
-                font-size: 6px !important;
+                font-size: 8px !important;
+                line-height: 1.4 !important;
+                margin-bottom: 3px !important;
             }
             .grand-total {
+                font-size: 11px !important;
+                margin-top: 6px !important;
+                padding-top: 6px !important;
+            }
+            .item-name {
+                flex: 3 !important;
+                text-align: left !important;
+                padding-right: 4px !important;
                 font-size: 9px !important;
+            }
+            .item-qty {
+                flex: 1 !important;
+                text-align: center !important;
+                padding: 0 3px !important;
+                font-size: 9px !important;
+            }
+            .item-price {
+                flex: 1 !important;
+                text-align: right !important;
+                padding-left: 4px !important;
+                font-size: 9px !important;
+            }
+            .item-total {
+                flex: 1 !important;
+                text-align: right !important;
+                font-weight: bold !important;
+                padding-left: 4px !important;
+                font-size: 9px !important;
+            }
+            .total-label {
+                flex: 2 !important;
+                text-align: left !important;
+                font-size: 9px !important;
+            }
+            .total-value {
+                flex: 1 !important;
+                text-align: right !important;
+                font-weight: bold !important;
+                font-size: 9px !important;
+            }
+            .order-label {
+                font-size: 9px !important;
+            }
+            .qr-section {
+                padding: 8px !important;
+                margin: 5px 0 !important;
+            }
+            .thank-you {
+                font-size: 11px !important;
+                margin-top: 8px !important;
+            }
+            .footer {
+                padding: 8px !important;
+                font-size: 8px !important;
+                margin-top: 5px !important;
+            }
+            .header {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .order-info {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .customer-info {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .items-section {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .totals-section {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
             }
         }
         
@@ -112,19 +197,21 @@ $qrData = json_encode([
             font-family: 'Courier New', monospace;
             background: #f5f5f5;
             padding: 10px;
-            font-size: 10px;
-            line-height: 1.2;
+            font-size: 12px;
+            line-height: 1.3;
         }
         
         .invoice-container {
-            width: 80mm;
-            max-width: 80mm;
+            width: 100mm;
+            max-width: 100mm;
             margin: 0 auto;
             background: white;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             border-radius: 8px;
             overflow: hidden;
-            min-height: 400px;
+            min-height: 500px;
+            font-family: 'Courier New', monospace;
+            line-height: 1.3;
         }
         
         .header {
@@ -134,15 +221,15 @@ $qrData = json_encode([
         }
         
         .restaurant-name {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
         
         .restaurant-info {
-            font-size: 8px;
+            font-size: 10px;
             color: #666;
-            line-height: 1.3;
+            line-height: 1.4;
         }
         
         .order-info {
@@ -153,8 +240,8 @@ $qrData = json_encode([
         .order-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 3px;
-            font-size: 9px;
+            margin-bottom: 4px;
+            font-size: 11px;
         }
         
         .order-label {
@@ -173,30 +260,37 @@ $qrData = json_encode([
         .item-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 4px;
-            padding: 2px 0;
-            font-size: 9px;
+            align-items: center;
+            margin-bottom: 5px;
+            padding: 3px 0;
+            font-size: 11px;
+            line-height: 1.3;
         }
         
         .item-name {
             flex: 3;
             word-wrap: break-word;
+            text-align: left;
+            padding-right: 4px;
         }
         
         .item-qty {
             text-align: center;
             flex: 1;
+            padding: 0 2px;
         }
         
         .item-price {
             text-align: right;
             flex: 1;
+            padding-left: 4px;
         }
         
         .item-total {
             text-align: right;
             flex: 1;
             font-weight: bold;
+            padding-left: 4px;
         }
         
         .totals-section {
@@ -207,20 +301,30 @@ $qrData = json_encode([
         .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 4px;
-            font-size: 9px;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 11px;
+            line-height: 1.3;
         }
         
         .total-label {
             font-weight: bold;
+            flex: 2;
+            text-align: left;
+        }
+        
+        .total-value {
+            flex: 1;
+            text-align: right;
+            font-weight: bold;
         }
         
         .grand-total {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             border-top: 1px solid #000;
-            padding-top: 5px;
-            margin-top: 5px;
+            padding-top: 6px;
+            margin-top: 6px;
         }
         
         .footer {
@@ -286,7 +390,7 @@ $qrData = json_encode([
         }
         
         /* POS-specific adjustments */
-        @media screen and (max-width: 100mm) {
+        @media screen and (max-width: 120mm) {
             .invoice-container {
                 width: 100%;
                 max-width: 100%;
@@ -410,15 +514,15 @@ $qrData = json_encode([
         <div class="totals-section">
             <div class="total-row">
                 <span class="total-label">Subtotal:</span>
-                <span><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['subtotal'], 2); ?></span>
+                <span class="total-value"><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['subtotal'], 2); ?></span>
             </div>
             <div class="total-row">
                 <span class="total-label">Tax (<?php echo getSetting('tax_rate') ?: '15'; ?>%):</span>
-                <span><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['tax_amount'], 2); ?></span>
+                <span class="total-value"><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['tax_amount'], 2); ?></span>
             </div>
             <div class="total-row grand-total">
                 <span class="total-label">Total:</span>
-                <span><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['total_amount'], 2); ?></span>
+                <span class="total-value"><?php echo htmlspecialchars(getSetting('currency') ?: 'PKR'); ?> <?php echo number_format($order['total_amount'], 2); ?></span>
             </div>
         </div>
         

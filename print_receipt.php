@@ -97,36 +97,100 @@ if (!$orderData) {
             body { 
                 margin: 0; 
                 padding: 0;
-                font-size: 8px;
+                font-size: 10px;
+                width: 100mm;
+                min-height: 100vh;
             }
             .no-print { display: none !important; }
             .receipt { 
                 box-shadow: none !important;
                 margin: 0 !important;
                 border-radius: 0 !important;
-                width: 80mm !important;
-                max-width: 80mm !important;
+                width: 100mm !important;
+                max-width: 100mm !important;
+                min-height: 500px !important;
+                padding: 0 !important;
             }
             @page {
                 margin: 0;
-                size: 80mm auto;
+                size: 100mm auto;
                 padding: 0;
             }
             .header, .order-info, .items, .totals, .qr-section, .footer {
-                padding: 3px !important;
+                padding: 5px 8px !important;
+                margin: 0 !important;
             }
             .item, .order-info, .total-row {
-                margin-bottom: 1px !important;
-                font-size: 7px !important;
+                margin-bottom: 4px !important;
+                font-size: 9px !important;
+                line-height: 1.3 !important;
+                display: flex !important;
+                align-items: center !important;
             }
             .header h1 {
-                font-size: 10px !important;
+                font-size: 12px !important;
+                margin-bottom: 4px !important;
             }
             .header p {
-                font-size: 6px !important;
+                font-size: 8px !important;
+                line-height: 1.4 !important;
+                margin-bottom: 2px !important;
             }
             .total-row.final {
+                font-size: 11px !important;
+                margin-top: 6px !important;
+                padding-top: 6px !important;
+            }
+            .item-name {
+                flex: 3 !important;
+                text-align: left !important;
+                padding-right: 4px !important;
                 font-size: 9px !important;
+            }
+            .item-qty {
+                flex: 1 !important;
+                text-align: center !important;
+                padding: 0 3px !important;
+                font-size: 9px !important;
+            }
+            .item-total {
+                flex: 1 !important;
+                text-align: right !important;
+                font-weight: bold !important;
+                padding-left: 4px !important;
+                font-size: 9px !important;
+            }
+            .total-label {
+                flex: 2 !important;
+                text-align: left !important;
+                font-size: 9px !important;
+            }
+            .total-value {
+                flex: 1 !important;
+                text-align: right !important;
+                font-weight: bold !important;
+                font-size: 9px !important;
+            }
+            .qr-section {
+                padding: 8px !important;
+                margin: 5px 0 !important;
+            }
+            .footer {
+                padding: 8px !important;
+                font-size: 8px !important;
+                margin-top: 5px !important;
+            }
+            .header {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .items {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .totals {
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
             }
         }
         
@@ -136,19 +200,22 @@ if (!$orderData) {
             padding: 10px;
             background: #f5f5f5;
             color: #333;
+            font-size: 12px;
+            line-height: 1.3;
         }
         
         .receipt {
-            width: 80mm;
-            max-width: 80mm;
+            width: 100mm;
+            max-width: 100mm;
             margin: 0 auto;
             background: white;
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            font-size: 9px;
-            line-height: 1.2;
-            min-height: 400px;
+            font-size: 11px;
+            line-height: 1.3;
+            min-height: 500px;
+            font-family: 'Courier New', monospace;
         }
         
         .header {
@@ -159,23 +226,23 @@ if (!$orderData) {
         }
         
         .header h1 {
-            margin: 0 0 5px 0;
+            margin: 0 0 6px 0;
             color: #20bf55;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
         }
         
         .header p {
-            margin: 3px 0;
+            margin: 4px 0;
             color: #64748b;
-            font-size: 8px;
+            font-size: 10px;
         }
         
         .order-info {
             display: flex;
             justify-content: space-between;
-            margin: 5px 0;
-            font-size: 9px;
+            margin: 6px 0;
+            font-size: 11px;
             color: #64748b;
         }
         
@@ -186,16 +253,33 @@ if (!$orderData) {
         .item {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
-            padding: 2px 0;
+            align-items: center;
+            margin: 5px 0;
+            padding: 3px 0;
             border-bottom: 1px solid #f1f5f9;
-            font-size: 9px;
+            font-size: 11px;
+            line-height: 1.3;
         }
         
         .item-name {
             flex: 3;
             font-weight: 500;
             word-wrap: break-word;
+            text-align: left;
+            padding-right: 4px;
+        }
+        
+        .item-qty {
+            flex: 1;
+            text-align: center;
+            padding: 0 2px;
+        }
+        
+        .item-total {
+            flex: 1;
+            text-align: right;
+            font-weight: bold;
+            padding-left: 4px;
         }
         
         .item-quantity {
@@ -221,17 +305,30 @@ if (!$orderData) {
         .total-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
-            font-size: 9px;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 11px;
+            line-height: 1.3;
         }
         
         .total-row.final {
             font-weight: bold;
-            font-size: 12px;
+            font-size: 14px;
             color: #20bf55;
             border-top: 1px solid #e2e8f0;
-            padding-top: 5px;
-            margin-top: 5px;
+            padding-top: 6px;
+            margin-top: 6px;
+        }
+        
+        .total-label {
+            flex: 2;
+            text-align: left;
+        }
+        
+        .total-value {
+            flex: 1;
+            text-align: right;
+            font-weight: bold;
         }
         
         .qr-section {
@@ -397,8 +494,8 @@ if (!$orderData) {
             <?php foreach ($orderData['items'] as $item): ?>
             <div class="item">
                 <div class="item-name"><?php echo htmlspecialchars($item['item_name']); ?></div>
-                <div class="item-quantity">x<?php echo $item['quantity']; ?></div>
-                <div class="item-price">PKR <?php echo number_format($item['total_price'], 2); ?></div>
+                <div class="item-qty">x<?php echo $item['quantity']; ?></div>
+                <div class="item-total">PKR <?php echo number_format($item['total_price'], 2); ?></div>
             </div>
             <?php if (!empty($item['special_instructions'])): ?>
             <div class="special-instructions">
@@ -411,16 +508,16 @@ if (!$orderData) {
         <!-- Totals -->
         <div class="totals">
             <div class="total-row">
-                <span>Subtotal:</span>
-                <span>PKR <?php echo number_format($orderData['subtotal'], 2); ?></span>
+                <span class="total-label">Subtotal:</span>
+                <span class="total-value">PKR <?php echo number_format($orderData['subtotal'], 2); ?></span>
             </div>
             <div class="total-row">
-                <span>Tax (<?php echo $tax_rate; ?>%):</span>
-                <span>PKR <?php echo number_format($orderData['tax_amount'], 2); ?></span>
+                <span class="total-label">Tax (<?php echo $tax_rate; ?>%):</span>
+                <span class="total-value">PKR <?php echo number_format($orderData['tax_amount'], 2); ?></span>
             </div>
             <div class="total-row final">
-                <span>Total:</span>
-                <span>PKR <?php echo number_format($orderData['total_amount'], 2); ?></span>
+                <span class="total-label">Total:</span>
+                <span class="total-value">PKR <?php echo number_format($orderData['total_amount'], 2); ?></span>
             </div>
         </div>
         
